@@ -1,0 +1,2215 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Claude</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23d97757' d='M12 2l1.8 7.2L21 7l-5.6 5 5.6 5-7.2-2.2L12 22l-1.8-7.2L3 17l5.6-5L3 7l7.2 2.2z'/></svg>">
+<link id="hl-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<link id="hl-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" disabled>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+:root {
+  --bg: #faf9f5; --sidebar: #f5f4ed; --panel: #ffffff; --user: #f0eee6; --border: #e5e2d9; --border-strong: #d6d2c4;
+  --text: #3d3929; --text-2: #73705f; --text-3: #a3a08f; --accent: #c96442; --accent-hover: #b5573a; --hover: #ebe9df;
+  --code-bg: #f5f4ef; --danger: #b3261e; --ok: #3b7d4f; --shadow: 0 2px 12px rgba(60, 50, 30, .08);
+  --serif: "Tiempos Text", "Source Serif 4", Georgia, "Noto Serif SC", "Songti SC", serif;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mono: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #262624; --sidebar: #1f1e1d; --panel: #30302e; --user: #141413; --border: #3a3936; --border-strong: #4a4945;
+    --text: #e8e6dc; --text-2: #a8a597; --text-3: #75736a; --hover: #35342f; --code-bg: #1f1e1d; --shadow: 0 2px 12px rgba(0,0,0,.3);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.app { display: flex; height: 100dvh; }
+
+/* sidebar */
+.sidebar { width: 272px; flex-shrink: 0; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: margin .2s; }
+.sidebar.collapsed { margin-left: -272px; }
+.sb-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 8px; }
+.logo { font-family: var(--serif); font-size: 21px; font-weight: 500; letter-spacing: -.01em; }
+.icon-btn { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: var(--text-2); }
+.icon-btn:hover { background: var(--hover); color: var(--text); }
+.new-chat { margin: 6px 10px 10px; padding: 8px 10px; border-radius: 10px; display: flex; gap: 10px; align-items: center; font-weight: 500; }
+.new-chat:hover { background: var(--hover); }
+.new-chat .plus { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 17px; }
+.sb-label { padding: 10px 18px 6px; font-size: 12px; color: var(--text-3); font-weight: 500; }
+.conv-list { flex: 1; overflow-y: auto; padding: 0 8px 12px; }
+.conv { display: flex; align-items: center; border-radius: 8px; padding: 7px 10px; font-size: 14px; color: var(--text-2); cursor: pointer; gap: 6px; }
+.conv:hover { background: var(--hover); color: var(--text); }
+.conv.active { background: var(--hover); color: var(--text); }
+.conv .t { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.conv .acts { display: none; gap: 2px; }
+.conv-tip { position: fixed; z-index: 60; max-width: min(420px, calc(100vw - 16px)); background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); padding: 6px 10px; font-size: 13px; line-height: 1.45; word-break: break-word; pointer-events: none; }
+.conv:hover .acts { display: flex; }
+.conv .acts button { padding: 2px 5px; border-radius: 5px; color: var(--text-3); font-size: 12px; }
+.conv .acts button:hover { color: var(--text); background: var(--border); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse 1.2s infinite; flex-shrink: 0; }
+@keyframes pulse { 50% { opacity: .3; } }
+.sb-foot { border-top: 1px solid var(--border); padding: 12px 14px; font-size: 12px; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); }
+.status-dot.on { background: var(--ok); }
+
+/* main */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+.topbar { height: 52px; display: flex; align-items: center; gap: 8px; padding: 0 12px; flex-shrink: 0; }
+.topbar .title { font-size: 14px; color: var(--text-2); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.scroll { flex: 1; overflow-y: auto; position: relative; }
+.thread { max-width: 760px; margin: 0 auto; padding: 8px 16px 24px; }
+.msg-user { display: flex; justify-content: flex-end; margin: 18px 0 10px; }
+.msg-user .bubble { background: var(--user); border-radius: 16px; padding: 10px 16px; max-width: 85%; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+.msg-user .atts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; justify-content: flex-end; }
+.msg-user .umeta { margin-top: 4px; transition: opacity .15s; }
+@media (hover: hover) { .msg-user .umeta { opacity: 0; } .msg-user:hover .umeta, .msg-user .umeta:focus-within { opacity: 1; } }
+.msg-user .atts img { max-height: 120px; border-radius: 8px; border: 1px solid var(--border); }
+.chip { font-size: 12px; border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; background: var(--panel); color: var(--text-2); }
+.msg-ai { margin: 6px 0 22px; font-family: var(--serif); font-size: 16.5px; line-height: 1.7; }
+.msg-ai .md > *:first-child { margin-top: 0; }
+.msg-ai .md p { margin: .6em 0; }
+.msg-ai .md h1, .msg-ai .md h2, .msg-ai .md h3 { font-weight: 600; line-height: 1.3; margin: 1.1em 0 .5em; }
+.msg-ai .md h1 { font-size: 1.4em; } .msg-ai .md h2 { font-size: 1.25em; } .msg-ai .md h3 { font-size: 1.1em; }
+.msg-ai .md code { font-family: var(--mono); font-size: .85em; background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; }
+.msg-ai .md pre { position: relative; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: 13.5px; line-height: 1.55; }
+.msg-ai .md pre code { border: 0; padding: 0; background: none; font-size: inherit; }
+.msg-ai .md pre .copy { position: absolute; top: 6px; right: 6px; font-family: var(--sans); font-size: 12px; padding: 3px 8px; border-radius: 6px; color: var(--text-3); background: var(--panel); border: 1px solid var(--border); opacity: 0; }
+.msg-ai .md pre:hover .copy { opacity: 1; }
+.mmd { border: 1px solid var(--border); border-radius: 10px; margin: .8em 0; background: var(--panel); overflow: hidden; }
+.mmd-bar { display: flex; align-items: center; gap: 6px; padding: 5px 8px 5px 12px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text-3); }
+.mmd-bar span { flex: 1; }
+.mmd-bar button { font-size: 12px; padding: 2px 8px; border-radius: 6px; color: var(--text-2); border: 1px solid var(--border); background: var(--bg); }
+.mmd-view { overflow-x: auto; padding: 12px; text-align: center; }
+.mmd-view:empty { display: none; }
+.mmd-view svg { max-width: 100%; height: auto; }
+.mmd-view:has(svg) { cursor: zoom-in; }
+/* full-screen diagram viewer: wheel / pinch to zoom, drag to pan */
+.mzv { position: fixed; inset: 0; z-index: 200; background: var(--bg); display: flex; flex-direction: column; }
+.mzv-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--panel); flex-wrap: wrap; }
+.mzv-bar .t { flex: 1; font-size: 13px; color: var(--text-3); min-width: 120px; }
+.mzv-bar button { font-size: 13px; min-width: 32px; padding: 4px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg); color: var(--text-2); }
+.mzv-bar .pct { font-size: 12px; color: var(--text-3); min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+.mzv-stage { flex: 1; overflow: hidden; position: relative; cursor: grab; touch-action: none; user-select: none; }
+.mzv-stage.drag { cursor: grabbing; }
+.mzv-inner { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.mzv-inner svg { display: block; max-width: none !important; }
+.mmd-wait { color: var(--text-3); font-size: 13px; padding: 10px; }
+.mmd-err { font-size: 12.5px; color: var(--danger); padding: 8px 12px; line-height: 1.5; word-break: break-word; }
+.mmd-acts { display: inline-flex; gap: 10px; margin-left: 8px; align-items: center; }
+.mmd-acts button { font-size: 12px; padding: 1px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text-2); }
+.mmd-acts a { font-size: 12px; color: var(--text-2); }
+.msg-ai .md .mmd pre.mmd-code { margin: 0; border: 0; border-radius: 0; border-top: 1px solid var(--border); }
+.msg-ai .md table { border-collapse: collapse; font-family: var(--sans); font-size: 14px; display: block; overflow-x: auto; }
+.msg-ai .md th, .msg-ai .md td { border: 1px solid var(--border); padding: 6px 10px; }
+.msg-ai .md blockquote { border-left: 3px solid var(--border-strong); margin: .6em 0; padding-left: 14px; color: var(--text-2); }
+.msg-ai .md a { color: var(--accent); }
+.msg-ai .md img { max-width: 100%; }
+.thinking { font-family: var(--sans); font-size: 13px; color: var(--text-2); margin: 6px 0; }
+.thinking summary { cursor: pointer; }
+.thinking .body { white-space: pre-wrap; border-left: 2px solid var(--border); padding-left: 10px; margin-top: 6px; }
+/* image generation progress card */
+.igp { font-family: var(--sans); border: 1px solid var(--border); border-radius: 12px; background: var(--panel); padding: 11px 14px; margin: 10px 0; max-width: 560px; }
+.igp-head { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); }
+.igp-head svg { color: var(--accent); flex: none; }
+.igp.err .igp-head svg { color: var(--danger); }
+.igp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: igpPulse 1.1s ease-in-out infinite; margin-left: 2px; }
+@keyframes igpPulse { 50% { opacity: .25; } }
+.igp-bar { height: 5px; border-radius: 3px; background: var(--code-bg); overflow: hidden; margin: 9px 0 6px; }
+.igp-bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; transition: width .9s ease; }
+.igp.ok .igp-bar i { background: var(--ok); }
+.igp.err .igp-bar i { background: var(--danger); }
+.igp-meta { font-size: 12px; color: var(--text-3); }
+.igp-err { font-size: 12.5px; color: var(--danger); margin-top: 6px; word-break: break-word; }
+.igp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+.igp-img { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--code-bg); display: flex; flex-direction: column; animation: igpIn .35s ease; }
+@keyframes igpIn { from { opacity: 0; transform: scale(.97); } }
+.igp-img > a { display: block; aspect-ratio: 1; background: var(--code-bg); }
+.igp-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.igp-acts { display: flex; border-top: 1px solid var(--border); background: var(--panel); }
+.igp-acts a { flex: 1; display: inline-flex; justify-content: center; align-items: center; gap: 4px; padding: 5px 0; font-size: 12px; color: var(--text-2); text-decoration: none; }
+.igp-acts a + a { border-left: 1px solid var(--border); }
+.igp-acts a:hover { background: var(--hover); color: var(--text); }
+.igp-wait { aspect-ratio: 1; align-items: center; justify-content: center; color: var(--text-3); font-size: 12.5px;
+  background: linear-gradient(100deg, var(--code-bg) 30%, color-mix(in srgb, var(--accent) 8%, var(--code-bg)) 50%, var(--code-bg) 70%) 0 0 / 300% 100%; animation: igpShimmer 1.6s linear infinite; }
+@keyframes igpShimmer { to { background-position: -300% 0; } }
+.igp:has(.igp-grid) { max-width: 680px; }
+.igp-prompt { margin-top: 6px; font-size: 12.5px; color: var(--text-2); }
+.igp-prompt summary { cursor: pointer; color: var(--text-3); }
+.igp-prompt div { margin-top: 4px; white-space: pre-wrap; line-height: 1.5; }
+.tool { font-family: var(--sans); font-size: 13.5px; border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; background: var(--panel); overflow: hidden; }
+.tool > summary { list-style: none; padding: 8px 12px; cursor: pointer; display: flex; gap: 8px; align-items: center; color: var(--text-2); }
+.tool > summary::-webkit-details-marker { display: none; }
+.tool > summary .name { color: var(--text); font-weight: 500; }
+.tool > summary .arg { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: var(--mono); font-size: 12.5px; }
+.tool > summary .st { font-size: 12px; }
+.tool .st.err { color: var(--danger); } .tool .st.ok { color: var(--ok); }
+.tool pre { margin: 0; padding: 10px 12px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; word-break: break-all; max-height: 320px; overflow: auto; background: var(--code-bg); }
+.err-block { font-family: var(--sans); font-size: 14px; color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent); background: color-mix(in srgb, var(--danger) 7%, transparent); border-radius: 10px; padding: 10px 12px; margin: 8px 0; white-space: pre-wrap; }
+.meta { font-family: var(--sans); font-size: 12px; color: var(--text-3); margin-top: 6px; display: flex; gap: 10px; align-items: center; }
+.meta button { color: var(--text-3); padding: 2px 6px; border-radius: 6px; } .meta button:hover { background: var(--hover); color: var(--text); }
+.spark { display: inline-block; width: 22px; height: 22px; color: var(--accent); animation: spin 2.4s linear infinite; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* permission */
+.perm { border: 1px solid var(--accent); border-radius: 12px; background: var(--panel); padding: 12px 14px; margin: 10px 0; font-family: var(--sans); box-shadow: var(--shadow); }
+.perm .h { font-weight: 600; margin-bottom: 6px; }
+.perm pre { font-family: var(--mono); font-size: 12.5px; background: var(--code-bg); border-radius: 8px; padding: 8px 10px; white-space: pre-wrap; word-break: break-all; max-height: 220px; overflow: auto; margin: 0 0 10px; }
+.perm .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { padding: 7px 14px; border-radius: 9px; border: 1px solid var(--border-strong); font-size: 14px; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent-hover); }
+
+/* empty state */
+.hero { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 16px 12vh; }
+.hero h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 5vw, 40px); margin: 0 0 28px; display: flex; align-items: center; gap: 12px; text-align: center; }
+.hero h1 svg { width: 36px; height: 36px; color: var(--accent); flex-shrink: 0; }
+.hero .composer-wrap { width: 100%; max-width: 680px; padding: 0; }
+
+/* composer */
+.composer-wrap { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 16px 16px; position: relative; }
+.composer { background: var(--panel); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow); padding: 12px 12px 10px 16px; }
+.composer:focus-within { border-color: var(--border-strong); }
+.composer textarea { width: 100%; border: 0; outline: 0; resize: none; background: transparent; color: var(--text); font: inherit; font-size: 16px; line-height: 1.5; max-height: 40vh; min-height: 26px; }
+.composer textarea::placeholder { color: var(--text-3); }
+.c-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.c-row .sp { flex: 1; }
+.pill { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 9px; font-size: 13.5px; color: var(--text-2); border: 1px solid transparent; white-space: nowrap; }
+.pill:hover { background: var(--hover); color: var(--text); }
+.pill.outlined { border-color: var(--border); }
+.mode-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; padding: 2px; gap: 2px; }
+.mode-toggle button { padding: 3px 10px; border-radius: 7px; font-size: 13px; color: var(--text-2); }
+.mode-toggle button:hover { color: var(--text); }
+.mode-toggle button.on { background: var(--hover); color: var(--text); font-weight: 500; }
+.send { width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: #fff; display: grid; place-items: center; }
+.send:disabled { opacity: .4; cursor: default; }
+.send.stop { background: var(--text); color: var(--bg); }
+.att-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.att-list:empty { display: none; }
+/* in-conversation index rail (left edge of the thread) */
+.toc { position: absolute; left: 10px; top: 64px; bottom: 150px; width: 34px; display: flex; flex-direction: column; justify-content: center; z-index: 5; pointer-events: none; }
+.toc-inner { display: flex; flex-direction: column; gap: 3px; max-height: 100%; overflow-y: auto; scrollbar-width: none; pointer-events: auto; padding: 4px 0; }
+.toc-inner::-webkit-scrollbar { display: none; }
+.toc-item { height: 14px; display: flex; align-items: center; cursor: pointer; padding-left: 4px; flex-shrink: 0; }
+.toc-item i { display: block; height: 2px; width: 12px; border-radius: 2px; background: var(--border-strong); transition: width .15s, background .15s; }
+.toc-item:hover i { width: 22px; background: var(--text-2); }
+.toc-item.on i { width: 20px; background: var(--accent); }
+.toc-item.br i { background: transparent; border-top: 2px dashed var(--border-strong); height: 0; }
+.toc-tip { position: fixed; z-index: 45; width: 300px; max-width: calc(100vw - 70px); background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.16); padding: 10px 12px; font-size: 13px; line-height: 1.5; pointer-events: none; }
+.toc-tip .n { font-size: 11.5px; color: var(--text-3); margin-bottom: 4px; display: flex; gap: 8px; }
+.toc-tip .q { font-weight: 600; color: var(--text); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+.toc-tip .a { color: var(--text-2); margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+@media (max-width: 1060px) { .toc { left: 2px; width: 26px; } .toc-item i { width: 9px; } }
+@media (max-width: 700px) { .toc { display: none; } }
+.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { from { background: color-mix(in srgb, var(--accent) 14%, transparent); } to { background: transparent; } }
+/* branches */
+.branch-note { font-family: var(--sans); font-size: 12.5px; color: var(--text-3); display: flex; align-items: center; gap: 10px; margin: 14px 0; }
+.branch-note::before, .branch-note::after { content: ''; flex: 1; border-top: 1px dashed var(--border-strong); }
+.branch-note a { color: var(--accent); cursor: pointer; }
+.branch-from { font-family: var(--sans); font-size: 12.5px; color: var(--text-3); margin: 4px 0 8px; }
+.branch-from a { color: var(--accent); cursor: pointer; }
+/* quote-reply (select text -> Reply, like claude.ai) */
+.quote-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.quote-list:empty { display: none; }
+.qcard { position: relative; display: flex; gap: 8px; align-items: flex-start; background: var(--hover); border-radius: 10px; padding: 7px 30px 7px 10px; font-size: 13px; color: var(--text-2); }
+.qcard .qi { color: var(--text-3); flex-shrink: 0; line-height: 1.5; }
+.qcard .qt { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+.qcard .x { position: absolute; top: 4px; right: 6px; width: 20px; height: 20px; border-radius: 6px; color: var(--text-3); }
+.qcard .x:hover { background: var(--border); color: var(--text); }
+.msg-user .quotes { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; align-items: flex-end; max-width: 85%; }
+.msg-user .uq { font-size: 13px; color: var(--text-2); border-left: 3px solid var(--border-strong); padding: 2px 0 2px 10px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; word-break: break-word; cursor: pointer; }
+.msg-user .uq:hover { color: var(--text); border-left-color: var(--accent); }
+::highlight(quote-src) { background-color: color-mix(in srgb, var(--accent) 28%, transparent); }
+.sel-reply { position: fixed; z-index: 40; display: flex; align-items: center; gap: 6px; background: var(--panel); color: var(--text); border: 1px solid var(--border-strong); border-radius: 9px; box-shadow: 0 6px 20px rgba(0,0,0,.18); padding: 5px 10px; font-size: 13px; font-family: var(--sans); white-space: nowrap; cursor: pointer; }
+.sel-reply:hover { background: var(--hover); }
+.sel-reply svg { width: 15px; height: 15px; }
+.att { position: relative; }
+.att img { height: 56px; border-radius: 8px; border: 1px solid var(--border); display: block; }
+.att .x { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: var(--text); color: var(--bg); font-size: 11px; line-height: 18px; text-align: center; }
+.hint { text-align: center; font-size: 12px; color: var(--text-3); margin-top: 8px; }
+
+/* popovers */
+.menu { position: absolute; z-index: 30; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.15); padding: 6px; min-width: 260px; max-width: min(380px, calc(100vw - 32px)); max-height: 60vh; overflow-y: auto; }
+.menu .sec { font-size: 11.5px; color: var(--text-3); padding: 8px 10px 4px; font-weight: 500; }
+.menu .item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.menu .item:hover, .menu .item.sel { background: var(--hover); }
+.menu .item .n { font-size: 14px; color: var(--text); }
+.menu .item .d { font-size: 12px; color: var(--text-3); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.menu .item .ck { width: 16px; color: var(--accent); flex-shrink: 0; }
+.menu .seg { display: flex; gap: 4px; padding: 2px 6px 8px; flex-wrap: wrap; }
+.menu .seg button { padding: 4px 9px; border-radius: 7px; font-size: 12.5px; border: 1px solid var(--border); color: var(--text-2); }
+.menu .seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* usage */
+.usage-mini { padding: 10px 14px 4px; border-top: 1px solid var(--border); cursor: pointer; }
+.usage-mini:hover { background: var(--hover); }
+.um-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); margin: 4px 0 6px; }
+.um-row .lbl { width: 44px; flex-shrink: 0; }
+.um-row .pct { width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+.bar { flex: 1; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.bar.warn > i { background: #d4a017; } .bar.full > i { background: var(--danger); }
+.topbar .sp { flex: 1; }
+/* live web preview panel (right side) */
+.sb-link { margin: -4px 10px 8px; padding: 6px 10px; border-radius: 10px; display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--text-2); }
+.sb-link:hover { background: var(--hover); color: var(--text); }
+.pv-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(62vw, 1200px); min-width: 420px; z-index: 50; background: var(--bg); border-left: 1px solid var(--border); box-shadow: -8px 0 30px rgba(0,0,0,.12); display: flex; flex-direction: column; }
+body.pv-open .main { margin-right: min(62vw, 1200px); }
+.pv-bar { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.pv-title { flex: 1; min-width: 120px; display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; }
+.pv-title b { overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.pv-sizes { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.pv-sizes button { font-size: 12.5px; padding: 4px 9px; color: var(--text-2); }
+.pv-sizes button.on { background: var(--hover); color: var(--text); font-weight: 600; }
+.pv-btn { font-size: 12.5px; padding: 4px 9px; border-radius: 8px; border: 1px solid var(--border); color: var(--text-2); background: var(--panel); text-decoration: none; }
+.pv-btn:hover { color: var(--text); background: var(--hover); }
+.pv-x { font-size: 16px; line-height: 1; padding: 3px 9px; }
+.pv-stage { flex: 1; min-height: 0; background: var(--code-bg); display: flex; justify-content: center; overflow: auto; }
+.pv-stage iframe { height: 100%; border: 0; background: #fff; max-width: 100%; box-shadow: 0 0 0 1px var(--border); transition: width .2s; }
+.pv-foot { font-size: 11.5px; color: var(--text-3); padding: 5px 10px; border-top: 1px solid var(--border); }
+.pv-pages { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px; }
+@media (max-width: 900px) { .pv-panel { width: 100vw; min-width: 0; } body.pv-open .main { margin-right: 0; } }
+/* files Claude produced / the user uploaded */
+.outs { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 4px; }
+.fcard { border: 1px solid var(--border); border-radius: 12px; background: var(--panel); overflow: hidden; max-width: 560px; }
+.fcard + .fcard { margin-top: 0; }
+.fprev { display: block; max-width: 100%; background: var(--code-bg); }
+a.fprev img { display: block; max-width: 100%; max-height: 320px; margin: 0 auto; }
+video.fprev { width: 100%; max-height: 360px; }
+audio.fprev { width: calc(100% - 20px); margin: 10px; background: none; }
+.frow { display: flex; align-items: center; gap: 10px; padding: 9px 12px; }
+.fext { flex: none; font-size: 10.5px; font-weight: 700; letter-spacing: .03em; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 6px; padding: 5px 6px; min-width: 34px; text-align: center; }
+.fname { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fname small { display: block; font-size: 12px; color: var(--text-3); }
+.fbtn { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); color: var(--text-2); text-decoration: none; background: var(--bg); }
+.fbtn:hover { color: var(--text); background: var(--hover); }
+.fbtn.fdl { color: var(--text); }
+.site-card .site-open { background: var(--accent); border-color: var(--accent); color: #fff; }
+.site-card .site-open:hover { filter: brightness(1.08); background: var(--accent); color: #fff; }
+.site-pages > summary { cursor: pointer; font-size: 12.5px; color: var(--text-3); padding: 0 12px 8px; list-style: none; }
+.site-pages > summary::before { content: '▸ '; } .site-pages[open] > summary::before { content: '▾ '; }
+.files-modal { width: min(620px, 100%); }
+.files-modal h3 { margin: 0 0 6px; font-size: 17px; }
+.fm-top, .fm-sec { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.fm-top h3 { margin: 0 !important; }
+.fm-sec { margin: 16px 0 8px; }
+.fm-sec h4 { margin: 0 !important; }
+.fbtn.fzip { font-size: 12.5px; padding: 4px 10px; }
+.files-modal h4 { margin: 16px 0 8px; font-size: 13px; color: var(--text-2); font-weight: 600; }
+.files-modal .fcard { margin-bottom: 8px; max-width: none; }
+.files-modal .note { font-size: 12.5px; color: var(--text-3); margin-top: 12px; }
+.msg-user .atts a.chip { display: inline-flex; align-items: center; gap: 5px; text-decoration: none; color: inherit; }
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 60; display: grid; place-items: center; padding: 16px; }
+.modal { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.25); width: min(520px, 100%); max-height: 85dvh; overflow-y: auto; padding: 20px 22px; }
+.modal h3 { font-family: var(--serif); font-weight: 500; font-size: 20px; margin: 0; }
+.modal .mh { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.modal .mh .sp { flex: 1; }
+.modal .sub { font-size: 13px; color: var(--text-3); margin-bottom: 14px; }
+.modal h4 { font-size: 13px; color: var(--text-2); font-weight: 600; margin: 18px 0 8px; }
+.u-item { margin: 10px 0 14px; }
+.u-item .top { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
+.u-item .top b { font-weight: 500; }
+.u-item .top span { font-variant-numeric: tabular-nums; color: var(--text-2); }
+.u-item .bar { height: 8px; }
+.u-item .rs { font-size: 12px; color: var(--text-3); margin-top: 5px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stats > div { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+.stats .k { font-size: 12px; color: var(--text-3); }
+.stats .v { font-size: 17px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.stats .v small { font-size: 12px; color: var(--text-3); }
+.note { font-size: 12px; color: var(--text-3); line-height: 1.6; margin-top: 12px; }
+/* share links */
+.btn.danger { color: var(--danger); }
+.share-modal .sh-intro { font-size: 13px; color: var(--text-2); line-height: 1.65; margin: 10px 0 12px; }
+.share-modal .sh-link { display: flex; gap: 8px; align-items: center; }
+.share-modal .sh-link input { flex: 1; min-width: 0; font: 13px var(--mono, monospace); padding: 7px 10px; border-radius: 9px; border: 1px solid var(--border-strong); background: var(--panel); color: var(--text); }
+.share-modal .btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+.share-modal .sh-msg { color: var(--text-2); }
+.share-modal .sh-item { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+.share-modal .sh-t { display: flex; flex-direction: column; margin-bottom: 8px; font-size: 14px; }
+.share-modal .sh-t small { color: var(--text-3); font-size: 12px; margin-top: 2px; }
+.share-head { font-family: var(--sans); font-size: 12.5px; color: var(--text-3); margin: 4px 0 14px; padding: 8px 12px; border: 1px dashed var(--border-strong); border-radius: 10px; }
+.share-mode .msg-ai .bf { display: none; }
+/* guest sub-links */
+.legacy #sh-list, .legacy #share-btn { display: none !important; }
+.no-devices #my-pc { display: none !important; }
+.dev-steps { margin: 8px 0 0; padding-left: 20px; font-size: 13px; line-height: 1.7; color: var(--text-2); }
+.dev-steps li { margin-bottom: 8px; }
+.dev-steps code, .share-modal .note code { font-size: 12px; background: var(--panel); padding: 1px 5px; border-radius: 5px; word-break: break-all; }
+.guest:not(.guest-code) #mode-toggle, .guest #perm-btn, .guest #pv-sites, .guest #sh-list, .guest #share-btn, .guest .fpv, .guest .site-card .site-open { display: none !important; }
+.ctag { flex: none; font-size: 11px; padding: 0 6px; border-radius: 6px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); margin-left: 6px; line-height: 18px; max-width: 7em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar .ctag { align-self: center; }
+.conv-filter { margin: 0 10px 6px; width: calc(100% - 20px); font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text-2); }
+#cwrap.readonly .composer, #cwrap.readonly .hint { display: none; }
+.ro-note { max-width: 760px; margin: 0 auto; font-size: 13px; color: var(--text-2); padding: 10px 14px; border: 1px dashed var(--border-strong); border-radius: 12px; background: var(--panel); }
+.um-sub { font-size: 11px; color: var(--text-3); padding: 0 2px; }
+.gu-card { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+.gu-card.off { background: color-mix(in srgb, var(--text-3) 6%, transparent); }
+.gu-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; font-size: 13px; }
+.gu-row label { color: var(--text-2); }
+.gu-row input[type=number], .gu-row input[type=text] { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--bg); color: var(--text); }
+.gu-row input[type=number] { width: 72px; }
+.gu-bar { flex: 1; min-width: 120px; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.gu-bar i { display: block; height: 100%; background: var(--accent); }
+.gu-bar.over i { background: var(--danger); }
+.gu-convs { max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; margin-top: 6px; }
+.gu-convs label { display: flex; gap: 8px; align-items: center; font-size: 13px; padding: 3px 0; color: var(--text); }
+.gu-convs input { flex: none; }
+.share-modal .sh-tabs.top { margin-bottom: 12px; }
+.share-modal.wide { width: min(760px, 100%); }
+.share-modal .sh-tt { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.share-modal .sh-title { font-weight: 600; color: var(--text); }
+.share-modal a.sh-title { cursor: pointer; text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 3px; }
+.share-modal .sh-badge { font-size: 11.5px; padding: 1px 8px; border-radius: 99px; font-weight: 500; }
+.sh-badge.st-on { background: color-mix(in srgb, #2e9e5b 15%, transparent); color: #2e8a52; }
+.sh-badge.st-off { background: color-mix(in srgb, var(--text-3) 18%, transparent); color: var(--text-2); }
+.sh-badge.st-exp { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.share-modal .sh-item.st-off, .share-modal .sh-item.st-exp { background: color-mix(in srgb, var(--text-3) 6%, transparent); }
+.share-modal .sh-st { color: var(--text-2) !important; }
+.share-modal .sh-ctl { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+.share-modal .sh-ctl .btn, .share-modal .sh-link .btn { padding: 5px 11px; font-size: 13px; }
+.share-modal .sh-link a.btn { text-decoration: none; color: inherit; }
+.share-modal .sh-exp { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 9px; border: 1px solid var(--border-strong); background: var(--bg); color: var(--text); max-width: 100%; }
+.share-modal .sh-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 2px; }
+.share-modal .sh-tab { font-size: 13px; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--border); color: var(--text-2); }
+.share-modal .sh-tab.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.rl-banner { max-width: 760px; margin: 0 auto 8px; padding: 0 16px; }
+.rl-banner div { font-size: 13px; border-radius: 10px; padding: 8px 12px; background: color-mix(in srgb, #d4a017 14%, transparent); border: 1px solid color-mix(in srgb, #d4a017 40%, transparent); }
+.rl-banner div { display: flex; align-items: center; gap: 8px; }
+.rl-banner .rl-x { margin-left: auto; flex: none; width: 22px; height: 22px; line-height: 20px; border-radius: 6px; font-size: 16px; color: inherit; opacity: .6; background: none; border: 0; cursor: pointer; }
+.rl-banner .rl-x:hover { opacity: 1; background: color-mix(in srgb, currentColor 12%, transparent); }
+.rl-banner div.rej { background: color-mix(in srgb, var(--danger) 10%, transparent); border-color: color-mix(in srgb, var(--danger) 40%, transparent); color: var(--danger); }
+
+.gate { margin: auto; max-width: 420px; text-align: center; padding: 24px; color: var(--text-2); line-height: 1.7; }
+.gate h2 { font-family: var(--serif); font-weight: 400; color: var(--text); }
+.backdrop { display: none; }
+@media (max-width: 820px) {
+  .sidebar { position: fixed; z-index: 40; height: 100dvh; box-shadow: var(--shadow); }
+  .sidebar:not(.collapsed) + .backdrop { display: block; position: fixed; inset: 0; z-index: 35; background: rgba(0,0,0,.25); }
+  .msg-ai { font-size: 16px; }
+  .hint { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<template id="spark"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 7.2L21 7l-5.6 5 5.6 5-7.2-2.2L12 22l-1.8-7.2L3 17l5.6-5L3 7l7.2 2.2z"/></svg></template>
+<script>
+// ---------- access key: taken from ?k= once, then kept in localStorage ----------
+const KEY_NAME = 'relay_key';
+let KEY = null;
+try {
+  const u = new URL(location.href);
+  if (u.searchParams.get('k')) { localStorage.setItem(KEY_NAME, u.searchParams.get('k')); u.searchParams.delete('k'); history.replaceState(null, '', u); }
+  KEY = localStorage.getItem(KEY_NAME);
+} catch { KEY = new URL(location.href).searchParams.get('k'); }
+// /s/<token>: a read-only shared conversation (served from the preview host, no access key).
+const SHARE = (location.pathname.match(/^\/s\/([\w-]{12,40})\/?$/) || [])[1] || null;
+if (SHARE) KEY = null;
+
+const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+const syncHl = () => { document.getElementById('hl-dark').disabled = !darkMQ.matches; document.getElementById('hl-light').disabled = darkMQ.matches; };
+syncHl(); darkMQ.addEventListener('change', syncHl);
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const SPARK = document.getElementById('spark').innerHTML;
+const pref = (k, d) => { try { return localStorage.getItem('relay_' + k) ?? d; } catch { return d; } };
+const setPref = (k, v) => { try { localStorage.setItem('relay_' + k, v); } catch {} };
+
+const state = {
+  convs: [], current: null, models: [], commands: [], perms: new Map(), attachments: [], quotes: [],
+  model: pref('model', 'default'), effort: pref('effort', ''), permissionMode: pref('perm', 'default'), mode: pref('mode', 'chat'),
+  connected: false, sidebar: innerWidth > 820, target: pref('target', ''), devices: [],
+};
+const PERM_MODES = [
+  ['default', '每次询问', '工具调用前在网页上请求你的批准'],
+  ['acceptEdits', '自动接受编辑', '文件编辑自动通过，其它仍询问'],
+  ['plan', '计划模式', '只做规划，不执行修改'],
+  ['bypassPermissions', '全部允许', '不再询问，直接执行（有风险）'],
+];
+const EFFORTS = [['', '默认'], ['low', '低'], ['medium', '中'], ['high', '高'], ['xhigh', '超高'], ['max', '最大']];
+
+marked.setOptions({ gfm: true, breaks: false });
+// Math ($…$, $$…$$, \(…\), \[…\]) is cut out before Markdown parsing so marked can't mangle it,
+// then rendered with KaTeX. Code spans and fences are left untouched.
+function protectMath(text) {
+  const math = [];
+  const keep = (tex, display) => { math.push({ tex, display }); return `@@MATH${math.length - 1}@@`; };
+  const out = text.split(/(```[\s\S]*?(?:```|$)|`[^`\n]*`)/g).map((part, i) => (i % 2 ? part : part
+    .replace(/\$\$([\s\S]+?)\$\$/g, (_, t) => keep(t, true))
+    .replace(/\\\[([\s\S]+?)\\\]/g, (_, t) => keep(t, true))
+    .replace(/\\\(([\s\S]+?)\\\)/g, (_, t) => keep(t, false))
+    .replace(/\$(?![\s\d])([^\n$]+?)(?<!\s)\$/g, (_, t) => keep(t, false)))).join('');
+  return { out, math };
+}
+// ---------- Mermaid diagrams (flowcharts etc.), loaded only when a reply contains one ----------
+// Drawing can fail for reasons that have nothing to do with the diagram (the library didn't download, the page
+// was busy re-rendering), so a failure is retried a few times and only then shown, with the real error.
+const mmdCache = new Map(); // theme+source -> svg (successes only)
+const mmdFail = new Map();  // theme+source -> { kind, error, tries, final }
+const mmdKey = (src) => (darkMQ.matches ? 'd:' : 'l:') + src;
+const MMD_CDNS = ['https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js', 'https://unpkg.com/mermaid@11.4.1/dist/mermaid.min.js'];
+let mmdLib = null, mmdQueue = Promise.resolve(), mmdSeq = 0;
+function loadMermaid() {
+  const tryLoad = (k) => new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = MMD_CDNS[k];
+    s.onload = () => (window.mermaid ? ok(window.mermaid) : fail(new Error('mermaid missing after load')));
+    s.onerror = () => { s.remove(); fail(new Error('无法下载绘图库 ' + new URL(MMD_CDNS[k]).host)); };
+    document.head.appendChild(s);
+  }).catch((e) => (k + 1 < MMD_CDNS.length ? tryLoad(k + 1) : Promise.reject(e)));
+  mmdLib ??= tryLoad(0).catch((e) => { mmdLib = null; throw e; });
+  return mmdLib;
+}
+function mmdLiveUrl(src) {
+  const st = JSON.stringify({ code: src, mermaid: JSON.stringify({ theme: 'default' }), autoSync: true, updateDiagram: true });
+  return 'https://mermaid.live/edit#base64:' + btoa(unescape(encodeURIComponent(st)));
+}
+function mmdErrHTML(f, src) {
+  const label = f.kind === 'load' ? '绘图库没有加载成功' : f.kind === 'syntax' ? 'Mermaid 语法错误' : '流程图渲染失败';
+  const msg = String(f.error || '').split('\n').filter(Boolean).slice(0, 3).join(' · ').slice(0, 240);
+  return `<div class="mmd-err"><b>${label}</b>${msg ? '：' + esc(msg) : ''}<span class="mmd-acts"><button class="mmd-retry">重试</button><a href="${esc(mmdLiveUrl(src))}" target="_blank" rel="noopener">在 mermaid.live 打开</a></span></div>`;
+}
+function paintMermaid(src) { // update every live box showing this source (the thread may have been re-rendered meanwhile)
+  const key = mmdKey(src), svg = mmdCache.get(key), f = mmdFail.get(key);
+  document.querySelectorAll('.mmd').forEach((b) => {
+    if (b.dataset.src !== src || b.dataset.partial) return;
+    const v = b.querySelector('.mmd-view'), c = b.querySelector('.mmd-code');
+    b.querySelector('.mmd-err')?.remove();
+    if (svg) { b.dataset.done = '1'; v.innerHTML = svg; c.hidden = true; }
+    else if (f?.final) { b.dataset.done = '1'; v.innerHTML = ''; c.hidden = false; c.insertAdjacentHTML('beforebegin', mmdErrHTML(f, src)); wireMermaid(b); }
+  });
+}
+function drawMermaid(src) {
+  const key = mmdKey(src);
+  mmdQueue = mmdQueue.then(async () => {
+    if (mmdCache.has(key) || mmdFail.get(key)?.final) return paintMermaid(src);
+    const f = mmdFail.get(key) || { tries: 0 };
+    try {
+      let m;
+      try { m = await loadMermaid(); } catch (e) { e.kind = 'load'; throw e; }
+      m.initialize({ startOnLoad: false, securityLevel: 'strict', theme: darkMQ.matches ? 'dark' : 'neutral', fontFamily: 'inherit' });
+      try { await m.parse(src); } catch (e) { e.kind = 'syntax'; throw e; }
+      const id = 'mmd-' + ++mmdSeq;
+      try { mmdCache.set(key, (await m.render(id, src)).svg); }
+      catch (e) { document.getElementById('d' + id)?.remove(); document.getElementById(id)?.remove(); e.kind = 'render'; throw e; }
+      mmdFail.delete(key);
+    } catch (e) {
+      f.tries++; f.kind = e?.kind || 'render'; f.error = String(e?.message || e);
+      f.final = f.tries >= 3;
+      mmdFail.set(key, f);
+      if (!f.final) { setTimeout(() => drawMermaid(src), f.tries * 800); return; }
+      fetch('/api/client-log', { method: 'POST', headers: { 'x-access-key': KEY, 'content-type': 'application/json' },
+        body: JSON.stringify({ type: 'mermaid', kind: f.kind, error: f.error.slice(0, 1500), conv: state.current?.id, src: src.slice(0, 3000), mermaid: window.mermaid?.version || '' }) }).catch(() => {});
+    }
+    paintMermaid(src);
+  });
+}
+function wireMermaid(box) {
+  const code = box.querySelector('.mmd-code');
+  box.querySelector('.mmd-src').onclick = () => { code.hidden = !code.hidden; };
+  box.querySelector('.mmd-cp').onclick = (e) => { navigator.clipboard.writeText(box.dataset.src); e.target.textContent = '已复制'; };
+  const zoom = () => { const svg = box.querySelector('.mmd-view svg'); if (svg) openDiagram(svg); };
+  const zb = box.querySelector('.mmd-zoom'); if (zb) zb.onclick = zoom;
+  box.querySelector('.mmd-view').onclick = (e) => { if (!getSelection().toString()) zoom(); };
+  const r = box.querySelector('.mmd-retry');
+  if (r) r.onclick = () => {
+    const src = box.dataset.src; mmdFail.delete(mmdKey(src));
+    r.disabled = true; r.textContent = '重试中…';
+    drawMermaid(src);
+  };
+}
+// Full-screen viewer for a drawn diagram. Wheel or pinch zooms around the pointer, dragging pans,
+// double-click toggles fit / 2x, keys: + - 0 (fit) 1 (100%) Esc.
+function openDiagram(src) {
+  document.querySelector('.mzv')?.remove();
+  const svg = src.cloneNode(true);
+  const vb = svg.viewBox?.baseVal;
+  const box = src.getBoundingClientRect();
+  const W = vb?.width || box.width || 800, H = vb?.height || box.height || 600;
+  svg.removeAttribute('style'); svg.setAttribute('width', W); svg.setAttribute('height', H);
+  const ov = document.createElement('div');
+  ov.className = 'mzv';
+  ov.innerHTML = `<div class="mzv-bar"><span class="t">滚轮/双指缩放 · 拖动平移 · 双击切换</span>
+    <button data-z="out" title="缩小 (-)">−</button><span class="pct"></span><button data-z="in" title="放大 (+)">+</button>
+    <button data-z="fit" title="适应窗口 (0)">适应</button><button data-z="one" title="原始大小 (1)">1:1</button>
+    <button data-z="svg">下载 SVG</button><button data-z="png">下载 PNG</button><button data-z="close" title="关闭 (Esc)">关闭</button></div>
+    <div class="mzv-stage"><div class="mzv-inner"></div></div>`;
+  const stage = ov.querySelector('.mzv-stage'), inner = ov.querySelector('.mzv-inner'), pct = ov.querySelector('.pct');
+  inner.appendChild(svg);
+  document.body.appendChild(ov);
+  const prevOverflow = document.documentElement.style.overflow;
+  document.documentElement.style.overflow = 'hidden';
+  let s = 1, x = 0, y = 0;
+  const apply = () => { inner.style.transform = `translate(${x}px,${y}px) scale(${s})`; pct.textContent = Math.round(s * 100) + '%'; };
+  const clamp = (v) => Math.min(20, Math.max(0.05, v));
+  const zoomAt = (ns, cx, cy) => { ns = clamp(ns); x = cx - (cx - x) * ns / s; y = cy - (cy - y) * ns / s; s = ns; apply(); };
+  const center = () => { const r = stage.getBoundingClientRect(); return [r.width / 2, r.height / 2]; };
+  const fit = () => {
+    const r = stage.getBoundingClientRect();
+    s = clamp(Math.min((r.width - 40) / W, (r.height - 40) / H, 4));
+    x = (r.width - W * s) / 2; y = (r.height - H * s) / 2; apply();
+  };
+  fit();
+  const close = () => { ov.remove(); document.documentElement.style.overflow = prevOverflow; removeEventListener('keydown', onKey, true); };
+  const download = async (kind) => {
+    const xml = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob([xml], { type: 'image/svg+xml' });
+    const save = (b, ext) => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `流程图-${Date.now()}.${ext}`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); };
+    if (kind === 'svg') return save(blob, 'svg');
+    const img = new Image(), k = Math.min(4, Math.max(2, 4000 / Math.max(W, H)));
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = W * k; c.height = H * k;
+      const g = c.getContext('2d'); g.fillStyle = getComputedStyle(document.body).backgroundColor || '#fff'; g.fillRect(0, 0, c.width, c.height);
+      g.drawImage(img, 0, 0, c.width, c.height);
+      try { c.toBlob((b) => (b ? save(b, 'png') : alert('PNG 导出失败，请用下载 SVG')), 'image/png'); }
+      catch { alert('这张图的浏览器不允许导出 PNG，请用下载 SVG'); }
+    };
+    img.onerror = () => alert('PNG 导出失败，请用下载 SVG');
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+  };
+  ov.querySelector('.mzv-bar').onclick = (e) => {
+    const z = e.target.closest('button')?.dataset.z; if (!z) return;
+    if (z === 'in') zoomAt(s * 1.25, ...center());
+    else if (z === 'out') zoomAt(s / 1.25, ...center());
+    else if (z === 'fit') fit();
+    else if (z === 'one') zoomAt(1, ...center());
+    else if (z === 'close') close();
+    else download(z);
+  };
+  stage.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const r = stage.getBoundingClientRect();
+    zoomAt(s * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+  // Pointer drag (mouse, pen, one finger) and two-finger pinch.
+  const pts = new Map(); let last = null, pinch = null;
+  stage.addEventListener('pointerdown', (e) => {
+    stage.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 1) { last = [e.clientX, e.clientY]; stage.classList.add('drag'); }
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), s }; }
+  });
+  stage.addEventListener('pointermove', (e) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, [e.clientX, e.clientY]);
+    const r = stage.getBoundingClientRect();
+    if (pts.size >= 2 && pinch) {
+      const [a, b] = [...pts.values()];
+      const d = Math.hypot(a[0] - b[0], a[1] - b[1]), mx = (a[0] + b[0]) / 2 - r.left, my = (a[1] + b[1]) / 2 - r.top;
+      if (last) { x += mx - last[0]; y += my - last[1]; }
+      last = [mx, my];
+      zoomAt(pinch.s * d / pinch.d, mx, my);
+    } else if (last) { x += e.clientX - last[0]; y += e.clientY - last[1]; last = [e.clientX, e.clientY]; apply(); }
+  });
+  const up = (e) => {
+    pts.delete(e.pointerId);
+    if (pts.size < 2) pinch = null;
+    if (pts.size === 1) { const [p] = pts.values(); last = p; } // keep panning with the remaining finger
+    if (!pts.size) { last = null; stage.classList.remove('drag'); }
+  };
+  stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
+  stage.addEventListener('dblclick', (e) => {
+    const r = stage.getBoundingClientRect(), r0 = Math.min((r.width - 40) / W, (r.height - 40) / H, 4);
+    if (Math.abs(s - r0) < 0.01) zoomAt(Math.max(2, r0 * 2), e.clientX - r.left, e.clientY - r.top); else fit();
+  });
+  const onKey = (e) => {
+    if (e.key === 'Escape') { e.stopPropagation(); close(); }
+    else if (e.key === '+' || e.key === '=') zoomAt(s * 1.25, ...center());
+    else if (e.key === '-') zoomAt(s / 1.25, ...center());
+    else if (e.key === '0') fit();
+    else if (e.key === '1') zoomAt(1, ...center());
+  };
+  addEventListener('keydown', onKey, true);
+}
+function renderMermaid(root) {
+  root.querySelectorAll('.mmd').forEach((box) => {
+    wireMermaid(box);
+    if (box.dataset.done || box.dataset.partial) return;
+    box.dataset.done = '1';
+    drawMermaid(box.dataset.src);
+  });
+}
+darkMQ.addEventListener('change', () => { if (state.current) renderThread(); });
+
+function md(text) {
+  const { out, math } = protectMath(text || '');
+  let html = DOMPurify.sanitize(marked.parse(out));
+  if (math.length) html = html.replace(/@@MATH(\d+)@@/g, (_, i) => {
+    const m = math[+i];
+    try { return window.katex ? katex.renderToString(m.tex, { displayMode: m.display, throwOnError: false }) : esc(m.tex); }
+    catch { return esc(m.tex); }
+  });
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  // ```mermaid blocks become diagrams (drawn later by renderMermaid, once the block's closing fence has arrived).
+  const openFence = ((text || '').match(/^\s*```/gm) || []).length % 2 === 1;
+  const blocks = [...div.querySelectorAll('pre > code.language-mermaid')];
+  blocks.forEach((c, k) => {
+    const src = c.textContent, box = document.createElement('div');
+    box.className = 'mmd'; box.dataset.src = src;
+    if (openFence && k === blocks.length - 1 && c.parentElement === div.querySelectorAll('pre').item(div.querySelectorAll('pre').length - 1)) box.dataset.partial = '1';
+    const svg = mmdCache.get(mmdKey(src)), fail = mmdFail.get(mmdKey(src));
+    const failed = !svg && fail?.final;
+    box.innerHTML = `<div class="mmd-bar"><span>流程图</span><button class="mmd-zoom">放大</button><button class="mmd-src">源码</button><button class="mmd-cp">复制</button></div>`
+      + `<div class="mmd-view">${svg || (failed ? '' : `<div class="mmd-wait">${box.dataset.partial ? '正在生成流程图…' : '正在绘制…'}</div>`)}</div>`
+      + (failed ? mmdErrHTML(fail, src) : '')
+      + `<pre class="mmd-code"${failed ? '' : ' hidden'}><code>${esc(src)}</code></pre>`;
+    if (svg || failed) box.dataset.done = '1';
+    c.parentElement.replaceWith(box);
+  });
+  div.querySelectorAll('pre:not(.mmd-code) code').forEach((c) => { try { hljs.highlightElement(c); } catch {} });
+  div.querySelectorAll('pre:not(.mmd-code)').forEach((p) => { const b = document.createElement('button'); b.className = 'copy'; b.textContent = '复制'; p.appendChild(b); });
+  div.querySelectorAll('a').forEach((a) => { a.target = '_blank'; a.rel = 'noopener'; });
+  return div.innerHTML;
+}
+
+// ---------- api ----------
+async function api(p, opts = {}) {
+  const r = await fetch(p, { ...opts, headers: { 'x-access-key': KEY, 'content-type': 'application/json', ...(opts.headers || {}) } });
+  if (r.status === 401) { KEY = null; render(); throw new Error('unauthorized'); }
+  return r.json();
+}
+
+// WebSocket with heartbeat (Cloudflare closes idle sockets after ~100 s) and an outbox:
+// chat messages stay queued until the server acknowledges them, so nothing is lost while reconnecting.
+// The outbox is kept in localStorage, so a message sent over a dead connection survives a page refresh and is
+// resent; a new conversation whose first message has not reached the server stays in the sidebar meanwhile.
+let ws, reconnectTimer, ackTimer;
+const OUTBOX_LS = 'relay_outbox';
+const outbox = new Map((() => { try { return JSON.parse(localStorage.getItem(OUTBOX_LS)) || []; } catch { return []; } })()
+  .filter(([, m]) => Date.now() - (m.at || 0) < 7 * 864e5)); // clientId -> message
+const saveOutbox = () => { try { localStorage.setItem(OUTBOX_LS, JSON.stringify([...outbox])); } catch {} };
+const pendingNew = (id) => [...outbox.values()].find((m) => m.isNew && m.convId === id);
+// Server list + new conversations still waiting to be delivered.
+function withPending(list) {
+  const extra = [...outbox.values()].filter((m) => m.isNew && !list.some((c) => c.id === m.convId))
+    .map((m) => ({ id: m.convId, title: m.title || '新对话', running: true }));
+  return [...extra, ...list];
+}
+const localConv = (m) => ({ id: m.convId, title: m.title || '新对话', running: true,
+  messages: [{ role: 'user', text: m.text, quotes: m.quotes, quoteSrc: m.quoteSrc, attachments: m.attachments }, { role: 'assistant', blocks: [] }] });
+// A socket can look open but be dead (phone asleep, network switch). If the server doesn't confirm a message
+// within a few seconds, drop the socket and reconnect; the outbox is resent and the server ignores duplicates.
+function armAck() {
+  clearTimeout(ackTimer);
+  ackTimer = setTimeout(() => {
+    if (!outbox.size || !ws || ws.readyState !== 1) return;
+    const old = ws; old.onclose = old.onmessage = null; try { old.close(); } catch {}
+    state.connected = false; renderFoot(); renderComposerState(); connect();
+  }, 8000);
+}
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => ((Math.random() * 16) | (c === 'x' ? 0 : 8)).toString(16)));
+function connect() {
+  clearTimeout(reconnectTimer);
+  if (ws && ws.readyState <= 1) return;
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?k=${encodeURIComponent(KEY)}`);
+  ws.onopen = () => {
+    state.connected = true; renderFoot(); renderComposerState(); refreshList();
+    for (const m of outbox.values()) ws.send(JSON.stringify(m));
+    if (outbox.size) armAck();
+    if (state.current?.id) openConv(state.current.id, true);
+  };
+  ws.onclose = () => { state.connected = false; renderFoot(); renderComposerState(); reconnectTimer = setTimeout(connect, 1500); };
+  ws.onmessage = (e) => onEvent(JSON.parse(e.data));
+}
+setInterval(() => ws?.readyState === 1 && ws.send('{"type":"ping"}'), 25_000);
+// Phones suspend pages (e.g. while the file picker is open); reconnect as soon as the page is visible again.
+document.addEventListener('visibilitychange', () => { if (!document.hidden && KEY && (!ws || ws.readyState > 1)) connect(); });
+const send = (m) => {
+  if (m.type === 'send') { m.at = Date.now(); outbox.set(m.clientId, m); saveOutbox(); }
+  if (ws?.readyState === 1) { ws.send(JSON.stringify(m)); if (m.type === 'send') armAck(); }
+  else connect();
+};
+
+function onEvent(m) {
+  if (m.type === 'ping') return;
+  if (m.type === 'ack') { outbox.delete(m.clientId); saveOutbox(); if (!outbox.size) clearTimeout(ackTimer); return; }
+  if (m.type === 'list') { state.convs = withPending(m.conversations); renderList(); }
+  else if (m.type === 'conv') {
+    const conv = { ...m.conv, running: m.conv.messages.at(-1)?.role === 'assistant' && !m.conv.messages.at(-1).done };
+    if (state.current?.id === conv.id) { state.current = conv; renderThread(); renderComposerState(); }
+  } else if (m.type === 'tool_progress') {
+    onToolProgress(m);
+  } else if (m.type === 'turn') {
+    if (state.current?.id !== m.convId) return;
+    const last = state.current.messages.at(-1);
+    if (last?.role === 'assistant') { last.blocks = m.blocks; renderLastTurn(); }
+  } else if (m.type === 'perm_request') { state.perms.set(m.reqId, m); if (state.current?.id === m.convId) renderPerms(); }
+  else if (m.type === 'perm_resolved') { state.perms.delete(m.reqId); renderPerms(); }
+  else if (m.type === 'devices') loadDevices();
+  else if (m.type === 'error') {
+    // Show it inside the conversation it belongs to (e.g. a guest whose weekly allowance is used up), else as an alert.
+    const last = state.current?.id === m.convId ? state.current.messages.at(-1) : null;
+    if (last?.role === 'assistant' && !last.done) {
+      last.blocks.push({ type: 'error', text: m.error }); last.done = true; state.current.running = false;
+      const li = state.convs.find((c) => c.id === m.convId); if (li) li.running = false;
+      renderThread(); renderComposerState(); renderList();
+    } else alert(m.error);
+  }
+  else if (m.type === 'usage_stale') loadUsage();
+  else if (m.type === 'title') {
+    if (state.current?.id === m.convId) { state.current.title = m.title; const t = $('.topbar .title'); if (t) t.textContent = m.title; }
+    if (state.current?.id === m.convId) document.title = m.title + ' - Claude';
+  }
+  else if (m.type === 'rate_limit') { state.rateLimit = m.info; renderRlBanner(); }
+}
+
+// ---------- usage ----------
+const WINDOWS = [
+  ['five_hour', '5 小时'], ['seven_day', '每周（全部模型）'], ['seven_day_opus', '每周 · Opus'],
+  ['seven_day_sonnet', '每周 · Sonnet'], ['seven_day_oauth_apps', '每周 · 第三方应用'],
+];
+const pctClass = (p) => (p >= 100 ? 'full' : p >= 80 ? 'warn' : '');
+const fmtPct = (p) => (p == null ? '—' : Math.round(p) + '%');
+function fmtReset(iso) {
+  if (!iso) return '';
+  const t = new Date(iso), ms = t - Date.now();
+  if (isNaN(t)) return '';
+  const h = Math.floor(ms / 36e5), m = Math.max(0, Math.round((ms % 36e5) / 6e4));
+  const rel = ms <= 0 ? '即将重置' : h >= 24 ? `${Math.floor(h / 24)} 天 ${h % 24} 小时后重置` : h > 0 ? `${h} 小时 ${m} 分后重置` : `${m} 分钟后重置`;
+  return `${rel} · ${t.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' })}`;
+}
+// Codex (ChatGPT plan) windows: primary / secondary, each { usedPercent, windowDurationMins, resetsAt (unix s) }.
+const cxWinName = (w) => (w.windowDurationMins === 300 ? '5 小时' : w.windowDurationMins === 10080 ? '每周' : w.windowDurationMins >= 1440 ? `${Math.round(w.windowDurationMins / 1440)} 天` : `${Math.round(w.windowDurationMins / 60)} 小时`);
+const cxWindows = (cx) => [cx?.rateLimits?.primary, cx?.rateLimits?.secondary].filter(Boolean);
+async function loadUsage(refresh) {
+  try { state.usage = await api('/api/usage' + (refresh ? '?refresh=1' : '')); } catch { return; }
+  renderUsageMini();
+  if ($('#usage-modal')) renderUsageModal();
+}
+// A guest's allowance: share of the owner's weekly quota used this week vs. the limit the owner set.
+function guestQuotaHTML(g, big) {
+  const lim = g.limitPct, used = g.pct || 0, p = lim ? Math.min(100, used / lim * 100) : Math.min(100, used);
+  const reset = g.resetsAt ? new Date(g.resetsAt * 1000).toLocaleString('zh-CN', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  return `<div class="um-row"><span class="lbl">本周</span><span class="bar ${pctClass(p)}"><i style="width:${p}%"></i></span><span class="pct">${used.toFixed(used < 10 ? 1 : 0)}%</span></div>`
+    + (big ? `<div class="note">已用约 ${used.toFixed(1)}% 的周额度${lim != null ? `，上限 ${lim}%${g.over ? '（已用完）' : ''}` : '（不限）'}，共 ${g.turns} 轮。${reset ? `${reset} 重置。` : ''}</div>`
+      : `<div class="um-sub">${lim != null ? `上限 ${lim}%` : '不限额'}</div>`);
+}
+function renderUsageMini() {
+  const el = $('#usage-mini'); if (!el) return;
+  if (state.usage?.guest) {
+    el.innerHTML = guestQuotaHTML(state.usage.guest);
+    const lbl = $('#usage-btn-label'); if (lbl) lbl.textContent = `额度 ${(state.usage.guest.pct || 0).toFixed(1)}%`;
+    return;
+  }
+  const rl = state.usage?.plan?.rateLimits;
+  const lbl = $('#usage-btn-label');
+  if (!state.usage) { el.innerHTML = `<div class="um-row">额度加载中…</div>`; return; }
+  if (!rl) { el.innerHTML = `<div class="um-row">额度：${state.usage.error ? '获取失败' : '不可用'} · 点击查看</div>`; if (lbl) lbl.textContent = '额度'; return; }
+  const rows = [['five_hour', '5 小时'], ['seven_day', '每周']].filter(([k]) => rl[k]);
+  el.innerHTML = rows.map(([k, n]) => {
+    const p = rl[k].utilization ?? 0;
+    return `<div class="um-row"><span class="lbl">${n}</span><span class="bar ${pctClass(p)}"><i style="width:${Math.min(100, p)}%"></i></span><span class="pct">${fmtPct(rl[k].utilization)}</span></div>`;
+  }).join('');
+  const cw = cxWindows(state.usage.codex).sort((a, b) => b.usedPercent - a.usedPercent)[0];
+  if (cw) el.innerHTML += `<div class="um-row" title="Codex ${cxWinName(cw)}"><span class="lbl">Codex</span><span class="bar ${pctClass(cw.usedPercent)}"><i style="width:${Math.min(100, cw.usedPercent)}%"></i></span><span class="pct">${fmtPct(cw.usedPercent)}</span></div>`;
+  if (lbl && rl.five_hour) lbl.textContent = `额度 ${fmtPct(rl.five_hour.utilization)}`;
+}
+function openUsage() {
+  closeMenus();
+  if (innerWidth <= 820) { state.sidebar = false; applySidebar(); }
+  if (state.role === 'guest') {
+    const g = state.usage?.guest;
+    const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.id = 'guest-usage';
+    bg.innerHTML = `<div class="modal"><h3>本周额度</h3><p class="sub">你的链接${state.me ? `（${esc(state.me)}）` : ''}可以使用主账号每周额度的一部分。</p>${g ? guestQuotaHTML(g, true) : '<div class="note">加载中…</div>'}</div>`;
+    bg.onclick = (e) => { if (e.target === bg) bg.remove(); };
+    document.body.appendChild(bg);
+    return;
+  }
+  const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.id = 'usage-modal';
+  bg.innerHTML = `<div class="modal"></div>`;
+  bg.onclick = (e) => { if (e.target === bg) bg.remove(); };
+  document.body.appendChild(bg);
+  renderUsageModal();
+  loadUsage(true);
+}
+function renderUsageModal() {
+  const box = $('#usage-modal .modal'); if (!box) return;
+  const u = state.usage, plan = u?.plan, rl = plan?.rateLimits;
+  const sub = plan?.subscriptionType || plan?.account?.subscriptionType;
+  const item = (name, w) => `<div class="u-item"><div class="top"><b>${esc(name)}</b><span>已用 ${fmtPct(w.utilization)}</span></div>
+    <div class="bar ${pctClass(w.utilization ?? 0)}"><i style="width:${Math.min(100, w.utilization ?? 0)}%"></i></div>
+    ${w.resets_at ? `<div class="rs">${fmtReset(w.resets_at)}</div>` : ''}</div>`;
+  let planHTML;
+  if (!u) planHTML = `<div class="note">加载中…</div>`;
+  else if (!rl) planHTML = `<div class="note">${u.error ? '获取额度失败：' + esc(u.error) : '本机 Claude 未登录订阅账号（或使用的是 API Key），无法读取套餐额度。'}</div>`;
+  else {
+    planHTML = WINDOWS.filter(([k]) => rl[k]).map(([k, n]) => item(n, rl[k])).join('') +
+      (rl.model_scoped || []).map((w) => item(`每周 · ${w.display_name}`, w)).join('');
+    const ex = rl.extra_usage;
+    if (ex?.is_enabled) {
+      const cur = ex.currency || 'USD';
+      planHTML += `<h4>额外用量</h4>` + item(`本月 ${ex.used_credits ?? 0} / ${ex.monthly_limit ?? '∞'} ${cur}`, { utilization: ex.utilization });
+    }
+  }
+  const cx = u?.codex;
+  let cxHTML;
+  if (!u) cxHTML = '';
+  else if (!cx) cxHTML = `<div class="note">加载中…</div>`;
+  else if (cx.error && !cx.rateLimits) cxHTML = `<div class="note">${esc(cx.error)}</div>`;
+  else if (!cx.loggedIn || !cx.rateLimits) cxHTML = `<div class="note">Codex 未登录 ChatGPT 账号，无法读取额度。</div>`;
+  else {
+    cxHTML = `<div class="sub">套餐：${esc(String(cx.planType || '未知').toUpperCase())}${cx.email ? ` · ${esc(cx.email)}` : ''}</div>` +
+      cxWindows(cx).map((w) => item(cxWinName(w), { utilization: w.usedPercent, resets_at: w.resetsAt ? w.resetsAt * 1000 : null })).join('') +
+      (cx.rateLimits.credits?.hasCredits ? `<div class="note">额外点数余额：${esc(String(cx.rateLimits.credits.balance))}</div>` : '') +
+      (cx.resetCredits ? `<div class="note">可用的免费额度重置次数：${cx.resetCredits}（在 Codex 里使用）</div>` : '');
+  }
+  const s = u?.local;
+  const cell = (k, v) => `<div><div class="k">${k}</div><div class="v">${v.turns} <small>轮</small></div><div class="k">≈ $${v.cost.toFixed(2)}</div></div>`;
+  box.innerHTML = `
+    <div class="mh"><h3>额度使用情况</h3><span class="sp"></span><button class="btn" id="u-refresh">刷新</button><button class="icon-btn" id="u-close" title="关闭">✕</button></div>
+    <div class="sub">${sub ? `套餐：${esc(sub.toUpperCase())}` : '套餐：未知'}${plan?.account?.email ? ` · ${esc(plan.account.email)}` : ''}${plan?.fetchedAt ? ` · 更新于 ${new Date(plan.fetchedAt).toLocaleTimeString('zh-CN')}` : ''}</div>
+    <h4>套餐额度</h4>${planHTML}
+    <h4>Codex 额度（生图用）</h4>${cxHTML}
+    ${s ? `<h4>本中转站用量（按 API 价格估算）</h4><div class="stats">${cell('今天', s.today)}${cell('近 7 天', s.last7)}${cell('全部', s.all)}</div>` : ''}
+    <div class="note">套餐额度与 claude.ai、桌面 App、Claude Code 共享，数据来自 Anthropic，约每分钟刷新一次。估算金额只是按 API 价格换算，订阅用户不会被实际扣费。</div>`;
+  $('#u-close').onclick = () => $('#usage-modal')?.remove();
+  $('#u-refresh').onclick = (e) => { e.target.textContent = '刷新中…'; loadUsage(true); };
+}
+function renderRlBanner() {
+  const info = state.rateLimit; let el = $('#rl-banner');
+  // Closing it with × hides it until the window resets; it comes back if usage passes 90% or the limit is hit.
+  const pctNow = info?.utilization != null ? info.utilization * (info.utilization <= 1 ? 100 : 1) : 0;
+  const rlKey = info && [info.rateLimitType, info.resetsAt, info.status, pctNow >= 90 ? 'high' : 'low'].join('|');
+  let dismissed = null; try { dismissed = localStorage.getItem('relay_rl_dismissed'); } catch {}
+  if (!info || info.status === 'allowed' || dismissed === rlKey) { el?.remove(); return; }
+  const cw = $('#cwrap'); if (!cw) return;
+  if (!el) { el = document.createElement('div'); el.className = 'rl-banner'; el.id = 'rl-banner'; cw.before(el); }
+  const when = info.resetsAt ? new Date(info.resetsAt * 1000).toLocaleString('zh-CN', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  const name = (WINDOWS.find((w) => w[0] === info.rateLimitType) || [, info.rateLimitType || ''])[1];
+  el.innerHTML = info.status === 'rejected'
+    ? `<div class="rej">已达到${esc(name)}额度上限${when ? `，将于 ${when} 重置` : ''}。</div>`
+    : `<div>${esc(name)}额度已用 ${fmtPct(info.utilization != null ? info.utilization * (info.utilization <= 1 ? 100 : 1) : null)}${when ? `，${when} 重置` : ''}。</div>`;
+  el.firstElementChild.insertAdjacentHTML('beforeend', '<button class="rl-x" title="关闭（到重置前不再提示，超过 90% 或用完时会再提醒）" aria-label="关闭">×</button>');
+  el.querySelector('.rl-x').onclick = () => { try { localStorage.setItem('relay_rl_dismissed', rlKey); } catch {} el.remove(); };
+}
+
+async function refreshList() { state.convs = withPending(await api('/api/conversations')); renderList(); }
+async function loadMeta() {
+  const m = await api('/api/meta');
+  state.models = m.models; state.commands = m.commands; state.previewUrl = m.previewUrl;
+  // A guest (sub-link) gets Chat mode only, no previews / sharing / owner quota; the server enforces the same.
+  state.role = m.role || 'owner'; state.me = m.note || '';
+  document.body.classList.toggle('guest', state.role === 'guest');
+  document.body.classList.toggle('legacy', state.role === 'legacy'); // the original main link: no share / guest management
+  state.guestCode = state.role === 'guest' && !!m.code; // the owner allowed this guest Code mode
+  document.body.classList.toggle('guest-code', state.guestCode);
+  if (state.role === 'guest' && !state.guestCode) state.mode = 'chat';
+  if (state.role === 'guest') { renderFoot(); renderComposerState(); }
+  loadDevices();
+}
+// Preview links are stored with the preview domain of the machine that made them; open them on this machine's.
+const pvLink = (u) => { try { const x = new URL(u); return state.previewUrl && x.pathname.startsWith('/p/') ? state.previewUrl.replace(/\/$/, '') + x.pathname + x.search + x.hash : u; } catch { return u; } };
+async function openConv(id, refresh) {
+  let c;
+  try { c = await fetch('/api/conversations/' + id, { headers: { 'x-access-key': KEY } }).then((r) => (r.ok ? r.json() : null)); } catch { c = null; }
+  // A brand-new conversation whose first message is still queued does not exist on the server yet: keep the local copy.
+  if (!c) {
+    const p = pendingNew(id);
+    if (p && !refresh) { state.current = localConv(p); if (innerWidth <= 820) state.sidebar = false; renderMain(); renderList(); return; }
+    if (!refresh) newChat();
+    return;
+  }
+  if (refresh && state.current?.id !== id) return;
+  state.current = c;
+  if (refresh) { renderThread(); renderComposerState(); renderPerms(); return; }
+  if (c.model) state.model = c.model;
+  if (c.mode) state.mode = c.mode;
+  if (c.mode === 'code') state.target = c.device && (state.devices || []).some((d) => d.id === c.device) ? c.device : (c.device ? state.target : ''); fixTarget();
+  if (innerWidth <= 820) state.sidebar = false;
+  renderMain(); renderList();
+}
+function newChat() { state.current = null; if (innerWidth <= 820) state.sidebar = false; renderMain(); renderList(); }
+
+// ---------- rendering ----------
+// ---------- "my computer": connect your own Mac / PC, then run Code mode on it ----------
+const PC_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>';
+const isMacUA = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+const devOsName = (d) => (d.os === 'darwin' ? 'Mac' : d.os === 'win32' ? 'Windows' : d.os || '电脑');
+// Code mode may run on the relay's own computer ('' target) only for the owner links, or guests the owner allowed.
+const cloudAllowed = () => state.role !== 'guest' || !!state.guestCode;
+async function loadDevices() {
+  try { const r = await api('/api/devices'); state.devices = r.devices || []; state.devAllowed = r.allowed !== false; state.devServer = r.server; }
+  catch { state.devices = []; state.devAllowed = false; }
+  document.body.classList.toggle('guest-code', state.role === 'guest' && (!!state.guestCode || state.devAllowed));
+  document.body.classList.toggle('no-devices', !state.devAllowed);
+  fixTarget(); renderComposerState();
+  // the list refreshes every few seconds: don't redraw under someone typing a folder path
+  if ($('#dev-modal') && !document.activeElement?.matches?.('#dev-modal input[data-f="root"]')) renderDevices();
+}
+// The computer Code mode runs on: '' = the relay's own computer, else a device id.
+function fixTarget() {
+  const ids = (state.devices || []).map((d) => d.id);
+  if (state.target && !ids.includes(state.target)) state.target = '';
+  if (!state.target && !cloudAllowed() && ids.length) state.target = (state.devices.find((d) => d.online) || state.devices[0]).id;
+}
+const targetName = () => { const d = (state.devices || []).find((x) => x.id === state.target); return d ? d.name : cloudAllowed() ? '云端电脑' : '选择电脑'; };
+function devMenu() {
+  closeMenus();
+  const m = document.createElement('div'); m.className = 'menu';
+  const item = (v, n, d, on) => `<div class="item" data-v="${esc(v)}"><span class="ck">${on ? '✓' : ''}</span><div><div class="n">${n}</div><div class="d">${d}</div></div></div>`;
+  m.innerHTML = `<div class="sec">Code 模式在哪台电脑上运行</div>`
+    + (cloudAllowed() ? item('', '云端电脑', '运行中转站的这台电脑', !state.target) : '')
+    + (state.devices || []).map((d) => item(d.id, `${d.online ? '🟢' : '⚪'} ${esc(d.name)}`, `${devOsName(d)} · ${d.online ? '在线' : '离线'} · ${esc(d.root || '')}`, state.target === d.id)).join('')
+    + `<div class="item" data-v="__manage"><span class="ck"></span><div><div class="n">${state.devices?.length ? '管理我的电脑…' : '连接我的电脑…'}</div><div class="d">把你自己的 Mac / Windows 连到这里</div></div></div>`;
+  m.querySelectorAll('.item').forEach((it) => (it.onclick = () => {
+    closeMenus();
+    if (it.dataset.v === '__manage') return openDevices();
+    state.target = it.dataset.v; setPref('target', state.target); renderComposerState();
+  }));
+  placeMenu(m, $('#dev-btn'));
+}
+let devPair = null, devOs = isMacUA ? 'mac' : 'win', devPoll = 0, devMsg = '';
+function openDevices() {
+  closeMenus(); $('#dev-modal')?.remove();
+  const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.id = 'dev-modal';
+  bg.innerHTML = '<div class="modal share-modal wide"></div>';
+  bg.onclick = (e) => { if (e.target === bg) closeDevices(); };
+  document.body.appendChild(bg);
+  devMsg = ''; renderDevices(); loadDevices();
+  clearInterval(devPoll); devPoll = setInterval(() => { if (!$('#dev-modal')) return clearInterval(devPoll); loadDevices(); }, 4000);
+}
+function closeDevices() { $('#dev-modal')?.remove(); clearInterval(devPoll); devMsg = ''; }
+function renderDevices(msg) {
+  const box = $('#dev-modal .modal'); if (!box) return;
+  if (msg !== undefined) devMsg = msg; msg = devMsg; // a message stays until the window is closed
+  const list = state.devices || [];
+  const ago = (t) => (t ? fmtTime(t) : '—');
+  const card = (d) => `<div class="gu-card ${d.online ? '' : 'off'}" data-d="${esc(d.id)}">
+    <div class="sh-tt"><b>${esc(d.name)}</b><span class="sh-badge ${d.online ? 'st-on' : 'st-off'}">${d.online ? '在线' : '离线'}</span><span class="note" style="margin:0">${devOsName(d)}${d.user ? ' · 用户 ' + esc(d.user) : ''}${d.ownerNote ? ' · ' + esc(d.ownerNote) : ''}</span></div>
+    <small class="note" style="display:block;margin:2px 0 0">工作文件夹：${esc(d.root || '')} · ${d.online ? '已连接' : '最近在线 ' + ago(d.lastSeenAt)}</small>
+    <div class="gu-row"><label>切换文件夹</label><input type="text" data-f="root" placeholder="${d.os === 'win32' ? '例如 D:\\项目 或 ~\\Documents\\项目' : '例如 ~/Documents/项目'}" style="flex:1;min-width:180px" ${d.online ? '' : 'disabled'}><button class="btn primary" data-a="root" ${d.online ? '' : 'disabled'}>切换</button></div>
+    ${(d.recent || []).length ? `<div class="gu-row"><label>最近用过</label>${d.recent.map((r) => `<button class="btn" data-recent="${esc(r)}" title="切换到 ${esc(r)}" ${d.online ? '' : 'disabled'}>${esc(r.split(/[\\/]/).filter(Boolean).pop() || r)}</button>`).join('')}</div>` : ''}
+    ${d.online ? `<small class="note" style="display:block;margin:4px 0 0">复制路径：${d.os === 'darwin' ? '在「访达」里选中文件夹，按 <b>⌥ ⌘ C</b>' : '在资源管理器里选中文件夹，按 <b>Ctrl + Shift + C</b>（或右键「复制文件地址」）'}。文件夹不存在会自动新建；切换后从下一条消息开始生效，连接器窗口里会显示这次切换。</small>` : ''}
+    <div class="gu-row"><label>执行命令</label><select data-f="policy" class="sh-exp"><option value="confirm" ${d.policy !== 'auto' ? 'selected' : ''}>每条命令先在网页上确认</option><option value="auto" ${d.policy === 'auto' ? 'selected' : ''}>直接执行（不确认）</option></select>
+      <button class="btn" data-a="rename">改名</button><button class="btn danger" data-a="del">移除</button></div>
+    ${d.online ? '' : `<div class="note" style="margin:8px 0 0">离线：在那台电脑上打开${d.os === 'darwin' ? '「终端」' : ' PowerShell'}，粘贴下面这行命令回车即可重新连上（不用重新配对；有新版本时会自动更新）：</div><div class="sh-link" style="margin-top:6px"><input readonly value="${esc(d.os === 'darwin' ? `curl -fsSL ${state.devServer || location.origin}/connect/install.sh | bash` : `irm ${state.devServer || location.origin}/connect/install.ps1 | iex`)}"><button class="btn primary sh-copy">复制命令</button></div>`}
+  </div>`;
+  const steps = devOs === 'mac' ? [
+    '在这台 Mac 上打开「终端」：按 <b>⌘ 空格</b>，输入「终端」或 Terminal，回车。',
+    '把下面这一行命令粘贴进终端，按回车。它会下载连接器（约 90MB）并完成配对。',
+    '终端会问你「工作文件夹」：Claude 只能读写这个文件夹里的文件。直接回车用默认的 <code>~/ClaudeWorkspace</code>，或者输入你想用的文件夹的完整路径。',
+    '看到「✅ 已连接」就好了，这个页面会自动显示你的电脑。<b>终端窗口保持打开</b>，关掉就断开；以后要用时再运行一次连接命令。',
+    '如果系统弹窗问「终端想访问“文稿”/“桌面”…」，点「允许」——这是 macOS 在保护你的文件，工作文件夹放在这些位置时需要它。']
+  : [
+    '在这台 Windows 电脑上打开 PowerShell：按 <b>Win + R</b>，输入 <code>powershell</code>，回车（不需要管理员）。',
+    '把下面这一行命令粘贴进 PowerShell（右键即可粘贴），按回车。它会下载连接器（约 115MB）并完成配对。',
+    '窗口会问你「工作文件夹」：Claude 只能读写这个文件夹里的文件。直接回车用默认的 <code>C:\\Users\\你的用户名\\ClaudeWorkspace</code>，或者输入你想用的文件夹的完整路径。',
+    '看到「✅ 已连接」就好了，这个页面会自动显示你的电脑。<b>PowerShell 窗口保持打开</b>，关掉就断开；以后要用时再运行一次连接命令。',
+    '如果 Windows 安全中心提示拦截，选「更多信息 → 仍要运行」（连接器暂时没有做代码签名）。'];
+  const cmd = devPair ? devPair.commands[devOs] : '';
+  const left = devPair ? Math.max(0, Math.round((devPair.expiresAt - Date.now()) / 60000)) : 0;
+  box.innerHTML = `<div class="mh"><h3>我的电脑</h3></div>
+    <p class="sh-intro">把你自己的电脑连到这里以后，在 <b>Code 模式</b>输入框旁边选这台电脑，Claude 就能在你的电脑上读写文件、执行命令。电脑主动连出来，不需要公网 IP、不用开端口、不用管理员权限。Claude 只能访问你指定的<b>工作文件夹</b>，执行命令默认要你在网页上逐条确认；连接器窗口会显示它做的每一步，关掉窗口即断开，也可以随时在这里移除。</p>
+    ${msg ? `<div class="note sh-msg">${esc(msg)}</div>` : ''}
+    ${state.devAllowed === false ? '<div class="note sh-msg">链接的主人没有允许这个链接连接自己的电脑。</div>' : ''}
+    ${list.map(card).join('') || (state.devAllowed === false ? '' : '<div class="note">还没有连接任何电脑。</div>')}
+    ${state.devAllowed === false ? '' : `<h4>连接新电脑</h4>
+    <div class="sh-tabs"><button class="sh-tab ${devOs === 'mac' ? 'on' : ''}" data-os="mac">Mac（苹果电脑）</button><button class="sh-tab ${devOs === 'win' ? 'on' : ''}" data-os="win">Windows 电脑</button></div>
+    <ol class="dev-steps">${steps.map((s, i) => `<li>${s}${i === 1 ? (devPair ? `<div class="sh-link" style="margin-top:6px"><input readonly value="${esc(cmd)}"><button class="btn primary sh-copy">复制命令</button></div><div class="note" style="margin-top:4px">配对码 <b>${esc(devPair.code)}</b>，${left > 0 ? `${left} 分钟内有效，只能用一次` : '已过期，请重新生成'}。这一行命令只给你自己用。</div>` : `<div style="margin-top:6px"><button class="btn primary" id="dev-gen">生成配对命令</button></div>`) : ''}</li>`).join('')}</ol>
+    <p class="note">要连另一台电脑：在那台电脑上打开这个网页（用同一个链接），再点一次「生成配对命令」。</p>`}
+    <div class="btns"><button class="btn" data-a="close">关闭</button></div>`;
+  wireShareLink(box);
+  box.querySelector('[data-a="close"]').onclick = closeDevices;
+  box.querySelectorAll('[data-os]').forEach((b) => (b.onclick = () => { devOs = b.dataset.os; renderDevices(); }));
+  const gen = box.querySelector('#dev-gen');
+  if (gen) gen.onclick = async () => {
+    gen.disabled = true;
+    try { const r = await api('/api/devices/pair-code', { method: 'POST' }); if (r.error) return renderDevices(r.error); devPair = r; renderDevices(); }
+    catch (e) { renderDevices(String(e.message || e)); }
+  };
+  box.querySelectorAll('.gu-card[data-d]').forEach((el) => {
+    const id = el.dataset.d, d = list.find((x) => x.id === id);
+    const patch = async (body, okMsg) => { try { await api('/api/devices/' + id, { method: 'PATCH', body: JSON.stringify(body) }); await loadDevices(); renderDevices(okMsg); } catch (e) { renderDevices(String(e.message || e)); } };
+    const setRoot = async (root, btn) => {
+      if (!root.trim()) return renderDevices('请先填写要切换到的文件夹路径');
+      if (btn) { btn.disabled = true; btn.textContent = '切换中…'; }
+      try {
+        const r = await api('/api/devices/' + id + '/root', { method: 'POST', body: JSON.stringify({ root }) });
+        if (r.error) { if (btn) { btn.disabled = false; btn.textContent = '切换'; } return renderDevices('切换失败：' + r.error); }
+        await loadDevices(); renderDevices(`「${d.name}」的工作文件夹已切换为 ${r.root}，下一条消息开始生效`);
+      } catch (e) { renderDevices('切换失败：' + (e.message || e)); }
+    };
+    const rootIn = el.querySelector('[data-f="root"]');
+    el.querySelector('[data-a="root"]').onclick = (e) => setRoot(rootIn.value, e.currentTarget);
+    rootIn.onkeydown = (e) => { if (e.key === 'Enter') setRoot(rootIn.value, el.querySelector('[data-a="root"]')); };
+    el.querySelectorAll('[data-recent]').forEach((b) => (b.onclick = () => setRoot(b.dataset.recent, b)));
+    el.querySelector('[data-f="policy"]').onchange =(e) => patch({ policy: e.target.value }, e.target.value === 'auto' ? `「${d.name}」上的命令将直接执行，不再确认` : `「${d.name}」上的每条命令都会先请你确认`);
+    el.querySelector('[data-a="rename"]').onclick = () => { const n = prompt('新名称', d.name); if (n) patch({ name: n }, '已改名'); };
+    el.querySelector('[data-a="del"]').onclick = async () => {
+      if (!confirm(`移除「${d.name}」？那台电脑上的连接器会立即断开并失效，之后要用需重新配对。`)) return;
+      await api('/api/devices/' + id, { method: 'DELETE' }); if (state.target === id) state.target = ''; await loadDevices(); renderDevices('已移除');
+    };
+  });
+  // a new computer appeared: the pairing code was used
+  if (devPair && list.some((x) => x.createdAt > devPair.expiresAt - 10 * 60_000)) {
+    const nd = list.find((x) => x.createdAt > devPair.expiresAt - 10 * 60_000);
+    devPair = null; state.target = nd.id; setPref('target', nd.id); state.mode = 'code'; setPref('mode', 'code'); renderComposerState();
+    renderDevices(`✅「${nd.name}」已连接。已切换到 Code 模式并选中这台电脑，可以直接让 Claude 操作它了，比如「列出工作文件夹里的文件」。`);
+  }
+}
+
+// ---------- share page (read-only) ----------
+async function renderShare() {
+  document.body.classList.add('share-mode');
+  $('#app').innerHTML = `<main class="main" id="main"><div class="topbar"><span class="title"></span><span class="sp"></span>
+    <button class="pill" id="files-btn" title="这个对话里的文件" style="display:none">${DL_ICON}<span>文件</span></button></div>
+    <div class="scroll" id="scroll"><div class="thread" id="thread"><div class="share-head">加载中…</div></div></div><nav class="toc" id="toc"></nav></main>`;
+  let v = null; try { const r = await fetch(`/api/s/${SHARE}`); if (r.ok) v = await r.json(); } catch {}
+  if (!v) { $('#thread').innerHTML = '<div class="gate"><h2>分享不存在</h2><p>这个链接可能已被取消，或输入有误。</p></div>'; return; }
+  state.current = { id: SHARE, title: v.title, messages: v.messages, extras: v.extras || [], share: v };
+  document.title = v.title;
+  $('#files-btn').onclick = openFiles;
+  $('#scroll').addEventListener('scroll', () => { cancelAnimationFrame(tocRaf); tocRaf = requestAnimationFrame(tocActive); }, { passive: true });
+  renderThread(false);
+  $('#scroll').scrollTop = 0;
+}
+
+// ---------- share links (owner side) ----------
+function shareModal(html) {
+  closeMenus(); $('#share-modal')?.remove();
+  const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.id = 'share-modal';
+  bg.innerHTML = `<div class="modal share-modal">${html}</div>`;
+  bg.onclick = (e) => { if (e.target === bg) bg.remove(); };
+  document.body.appendChild(bg);
+  return bg;
+}
+function wireShareLink(root) {
+  root.querySelectorAll('.sh-copy').forEach((b) => (b.onclick = () => { navigator.clipboard.writeText(b.previousElementSibling.value); const t0 = b.textContent; b.textContent = '已复制'; setTimeout(() => (b.textContent = t0), 1500); }));
+}
+const fmtTime = (t) => (t ? new Date(t).toLocaleString('zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '');
+const SH_STATUS = { active: ['有效', 'st-on'], paused: ['已暂停', 'st-off'], expired: ['已过期', 'st-exp'] };
+function shareStatusText(s) {
+  if (s.status === 'paused') return '已暂停：打开链接会看到「分享已暂停」，恢复后同一个链接继续可用';
+  if (s.status === 'expired') return `已过期（${fmtTime(s.expiresAt)}）：打开链接会看到「分享已过期」`;
+  return s.expiresAt ? `有效，到 ${fmtTime(s.expiresAt)} 自动失效` : '有效，永久（直到你暂停或删除）';
+}
+// One share with all its controls: copy / open, pause-resume, validity, refresh snapshot, delete.
+function shareCardHTML(s) {
+  const [label, cls] = SH_STATUS[s.status] || ['未知', ''];
+  const relayId = s.kind === 'relay' ? s.source.slice(6) : null;
+  return `<div class="sh-item ${cls}" data-t="${esc(s.token)}">
+    <div class="sh-t"><div class="sh-tt">${relayId ? `<a class="sh-title" data-conv="${esc(relayId)}" title="打开这个对话">${esc(s.title)}</a>` : `<b class="sh-title">${esc(s.title)}</b>`}<span class="sh-badge ${cls}">${label}</span></div>
+      <small>${s.kind === 'cc' ? 'Claude Code 对话' : '中转站对话'} · 访问 ${s.views || 0} 次${s.lastViewedAt ? `（最近 ${fmtTime(s.lastViewedAt)}）` : ''} · 快照 ${fmtTime(s.updatedAt)}</small>
+      <small class="sh-st">${esc(shareStatusText(s))}</small></div>
+    <div class="sh-link"><input readonly value="${esc(s.url)}"><button class="btn sh-copy">复制</button><a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">打开</a></div>
+    <div class="sh-ctl">
+      ${s.status === 'active' ? '<button class="btn" data-act="pause">暂停</button>' : s.status === 'paused' ? '<button class="btn primary" data-act="resume">恢复</button>' : '<button class="btn primary" data-act="renew">重新启用（改为永久）</button>'}
+      <select class="sh-exp" data-act="exp" title="有效期">
+        <option value="" selected>有效期：${s.expiresAt ? '到 ' + fmtTime(s.expiresAt) : '永久'}</option>
+        <option value="0">改为永久</option><option value="1">从现在起 1 天</option><option value="7">从现在起 7 天</option><option value="30">从现在起 30 天</option><option value="custom">指定日期…</option>
+      </select>
+      <button class="btn" data-act="refresh" title="用对话的最新内容重新生成快照，链接不变">更新内容</button>
+      <button class="btn danger" data-act="del" title="永久删除快照，链接不可恢复">删除</button>
+    </div></div>`;
+}
+function wireShareCards(root, after) {
+  wireShareLink(root);
+  root.querySelectorAll('.sh-title[data-conv]').forEach((a) => (a.onclick = () => { $('#share-modal')?.remove(); openConv(a.dataset.conv); }));
+  root.querySelectorAll('.sh-item').forEach((card) => {
+    const t = card.dataset.t;
+    const patch = (body) => api('/api/shares/' + t, { method: 'PATCH', body: JSON.stringify(body) });
+    const run = async (el, fn) => { el.disabled = true; try { const r = await fn(); after(r?.error || r?.msg || ''); } catch (e) { after(String(e.message || e)); } };
+    card.querySelectorAll('[data-act]').forEach((el) => {
+      const act = el.dataset.act;
+      if (act === 'exp') return (el.onchange = () => {
+        const v = el.value; if (!v) return;
+        let at = null;
+        if (v === 'custom') {
+          const d = prompt('分享在哪一天结束？（格式 2026-12-31，当天 23:59 失效）', new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10));
+          const m = d && d.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+          if (!m) { el.value = ''; if (d) after('日期格式不对，请用 2026-12-31 这样的格式'); return; }
+          at = new Date(+m[1], +m[2] - 1, +m[3], 23, 59, 59).getTime();
+          if (at <= Date.now()) { el.value = ''; return after('这个日期已经过去了'); }
+        } else if (v !== '0') at = Date.now() + +v * 864e5;
+        run(el, async () => { await patch({ expiresAt: at, enabled: true }); return { msg: at ? `有效期已设为到 ${fmtTime(at)}` : '已改为永久有效' }; });
+      });
+      el.onclick = () => {
+        if (act === 'pause') run(el, async () => { await patch({ enabled: false }); return { msg: '已暂停，链接暂时打不开' }; });
+        if (act === 'resume') run(el, async () => { await patch({ enabled: true }); return { msg: '已恢复，链接可以访问了' }; });
+        if (act === 'renew') run(el, async () => { await patch({ enabled: true, expiresAt: null }); return { msg: '已重新启用，永久有效' }; });
+        if (act === 'refresh') { el.textContent = '更新中…'; run(el, async () => { const r = await api(`/api/shares/${t}/refresh`, { method: 'POST' }); return r.error ? r : { msg: '已更新为最新内容，链接不变' }; }); }
+        if (act === 'del') {
+          if (!confirm('删除后这个链接永久失效，以后重新分享会是一个新链接。确定删除吗？\n（只是想临时关闭的话，用「暂停」）')) return;
+          run(el, async () => { await api('/api/shares/' + t, { method: 'DELETE' }); return { msg: '已删除' }; });
+        }
+      };
+    });
+  });
+}
+async function openShare() {
+  const c = state.current; if (!c?.id) return;
+  const draw = async (msg) => {
+    let s = null; try { s = (await api('/api/shares?convId=' + encodeURIComponent(c.id))).share; } catch {}
+    const bg = shareModal(`<h3>分享这个对话</h3>
+      <p class="sh-intro">生成一个只读链接，拿到链接的人不用登录就能看到完整对话过程和其中的文件（不能发消息、看不到你的其它对话）。分享的是当前内容的快照；系统提示会被去掉，密钥、令牌和你的用户目录会自动打码。</p>
+      ${s ? shareCardHTML(s) : '<div class="btns" style="justify-content:flex-start"><button class="btn primary" data-a="create">生成分享链接</button></div>'}
+      ${msg ? `<div class="note sh-msg">${esc(msg)}</div>` : ''}
+      <div class="btns"><button class="btn" data-a="all">管理全部分享</button><button class="btn" data-a="close">关闭</button></div>`);
+    wireShareCards(bg, draw);
+    bg.querySelector('[data-a="close"]').onclick = () => bg.remove();
+    bg.querySelector('[data-a="all"]').onclick = openShares;
+    const cr = bg.querySelector('[data-a="create"]');
+    if (cr) cr.onclick = async () => {
+      cr.disabled = true; cr.textContent = '生成中…';
+      try { const r = await api('/api/shares', { method: 'POST', body: JSON.stringify({ convId: c.id }) }); draw(r.error || '已生成，复制链接发给对方即可'); }
+      catch (e) { draw(String(e.message || e)); }
+    };
+  };
+  draw();
+}
+let shFilter = 'all';
+// Two pages in the share manager: read-only conversation snapshots, and guest sub-links.
+const SH_TOP = (on) => `<div class="sh-tabs top"><button class="sh-tab ${on === 'shares' ? 'on' : ''}" data-top="shares">对话分享（只读快照）</button><button class="sh-tab ${on === 'guests' ? 'on' : ''}" data-top="guests">访客子链接</button></div>`;
+function wireShTop(bg) { bg.querySelectorAll('[data-top]').forEach((b) => (b.onclick = () => (b.dataset.top === 'guests' ? openGuests() : openShares()))); }
+
+// ---------- guest sub-links (owner) ----------
+// Each guest gets their own link: they see only their conversations (plus the ones shared with them, read-only),
+// use Chat mode only, and can be capped at a share of the weekly quota.
+let guOpen = null; // id of the guest whose shared-conversation picker is open
+async function openGuests(msg) {
+  let d; try { d = await api('/api/users'); } catch (e) { d = { users: [], convs: [], quota: {} }; msg = String(e.message || e); }
+  const q = d.quota || {};
+  const fmtK = (k) => '$' + Number(k).toFixed(2);
+  const card = (u) => {
+    const g = u.usage || {}, lim = u.quotaPct, used = g.pct || 0;
+    const pct = lim ? Math.min(100, used / lim * 100) : Math.min(100, used);
+    const picked = new Set(u.shared || []);
+    const sharedOk = (u.shared || []).filter((id) => d.convs.some((c) => c.id === id)).length;
+    return `<div class="gu-card ${u.enabled ? '' : 'off'}" data-u="${esc(u.id)}">
+      <div class="sh-tt"><b>${esc(u.note)}</b><span class="sh-badge ${u.enabled ? 'st-on' : 'st-off'}">${u.enabled ? '启用中' : '已停用'}</span>${u.code ? '<span class="sh-badge st-exp" title="这个访客可以在你的电脑上用 Code 模式">可用云端 Code</span>' : ''}${u.devices === false ? '<span class="sh-badge st-off">不能连自己的电脑</span>' : ''}</div>
+      <small class="note" style="margin:2px 0 0;display:block">创建于 ${fmtTime(u.createdAt)} · ${u.convCount} 个对话${u.lastSeenAt ? ` · 最近使用 ${fmtTime(u.lastSeenAt)}` : ' · 还没用过'}</small>
+      <div class="sh-link" style="margin-top:8px"><input readonly value="${esc(u.url)}"><button class="btn sh-copy">复制链接</button></div>
+      <div class="gu-row"><span>本周已用 ${used.toFixed(1)}%（≈${fmtK(g.cost || 0)}，${g.turns || 0} 轮）</span><span class="gu-bar ${g.over ? 'over' : ''}"><i style="width:${pct}%"></i></span><span>${lim != null ? `上限 ${lim}%` : '不限'}</span></div>
+      <div class="gu-row"><label>备注</label><input type="text" data-f="note" value="${esc(u.note)}" maxlength="60" style="width:140px">
+        <label>周额度上限</label><input type="number" data-f="quota" min="0" max="100" step="0.5" value="${lim ?? ''}" placeholder="不限">%
+        <button class="btn" data-a="save">保存</button></div>
+      <div class="gu-row"><button class="btn" data-a="pick">共享给 TA 的对话（${sharedOk} 个）${guOpen === u.id ? ' ▲' : ' ▼'}</button>
+        <button class="btn" data-a="view">查看 TA 的对话</button>
+        <button class="btn ${u.enabled ? '' : 'primary'}" data-a="toggle">${u.enabled ? '停用' : '启用'}</button>
+        <button class="btn" data-a="devices" title="是否允许 TA 把自己的电脑连上来，在 Code 模式里让 Claude 操作 TA 自己的电脑">${u.devices === false ? '允许连自己的电脑' : '禁止连自己的电脑'}</button>
+        <button class="btn ${u.code ? '' : 'danger'}" data-a="code" title="Code 模式：Claude 能在你这台电脑上执行命令">${u.code ? '关闭 Code 模式' : '允许 Code 模式'}</button>
+        <button class="btn" data-a="rotate" title="生成新链接，旧链接立即失效">更换链接</button>
+        <button class="btn danger" data-a="del">删除</button></div>
+      ${guOpen === u.id ? `<div class="gu-row" style="display:block"><input type="text" class="gu-search" placeholder="搜索对话标题…" style="width:100%">
+        <div class="gu-convs">${d.convs.map((c) => `<label><input type="checkbox" value="${esc(c.id)}" ${picked.has(c.id) ? 'checked' : ''}><span>${esc(c.title || '对话')}</span></label>`).join('') || '<div class="note">你还没有对话</div>'}</div>
+        <div class="btns" style="justify-content:flex-start;margin-top:8px"><button class="btn primary" data-a="saveShared">保存共享设置</button><span class="note" style="margin:0">勾选的对话 TA 可以只读查看，并能从回复处开分支接着聊。</span></div></div>` : ''}
+    </div>`;
+  };
+  const bg = shareModal(`<div class="mh"><h3>分享管理</h3></div>${SH_TOP('guests')}
+    <p class="sh-intro">给别人一个<b>独立的子链接</b>：TA 只能看到自己的对话，以及你勾选共享给 TA 的对话（只读）；默认只能用 Chat 模式（联网搜索、读 TA 自己上传的文件、生图），不能在你电脑上执行命令或读其它文件；对信得过的人可以单独「允许 Code 模式」，TA 的项目文件放在专属文件夹里，但命令不经你批准直接执行。你用管理链接能看到所有人的对话，侧栏可以按访客筛选。<br><b>注意：</b>不要在你自己的浏览器里打开访客链接，否则这个浏览器会切换成访客身份（再用管理链接打开一次即可切回）。</p>
+    ${msg ? `<div class="note sh-msg">${esc(msg)}</div>` : ''}
+    <div class="gu-card"><div class="sh-tt"><b>新建子链接</b></div>
+      <div class="gu-row"><label>备注（给谁的）</label><input type="text" id="gu-note" maxlength="60" placeholder="例如：张三" style="width:150px">
+        <label>周额度上限</label><input type="number" id="gu-quota" min="0" max="100" step="0.5" placeholder="不限">%
+        <button class="btn primary" id="gu-new">生成</button></div></div>
+    ${(d.users || []).map(card).join('') || '<div class="note">还没有访客子链接。</div>'}
+    <h4>额度换算</h4>
+    <p class="sh-intro" style="margin-top:0">访客用量按每轮回复的费用（API 等价美元）记账，再换算成你周额度的百分比：<b>1% 周额度 ≈ ${fmtK(q.k || q.kDefault || 0.7)}</b>${q.kManual ? '（手动设置）' : (q.kAuto || 0) > (q.kDefault || 0.7) ? '（根据本机记录自动校准）' : '（默认值；本机记录算出的值更低时仍用默认值，用得越多越准）'}。自动校准只会偏保守：访客会提前被拦下，不会超额。本周起点 ${q.weekStart ? fmtTime(q.weekStart) : '未知'}${q.sevenDay ? `，当前主账号周额度已用 ${Math.round(q.sevenDay.utilization)}%` : ''}。</p>
+    <div class="gu-row" style="margin-top:0"><label>手动设置 1% =</label>$<input type="number" id="gu-k" min="0.01" step="0.05" value="${q.kManual ?? ''}" placeholder="${(q.kAuto || q.kDefault || 0.7).toFixed(2)}"><button class="btn" id="gu-k-save">保存</button><span class="note" style="margin:0">留空 = 自动</span></div>
+    <h4>管理链接</h4>
+    <p class="sh-intro" style="margin-top:0">你现在用的是<b>管理链接</b>：能看到所有对话（包括个人链接和访客的），也只有它能管理分享和访客，只留给你自己。<b>个人链接</b>（启动日志里打印的另一条）照常可用（Chat/Code、网页预览、文件下载），但只能看到用它新建的对话，看不到这里新建的对话，也没有分享和访客管理。如果管理链接泄露了，点下面的按钮换一个：旧的管理链接立即失效，个人链接不受影响。</p>
+    <div class="gu-row" style="margin-top:0"><button class="btn danger" id="gu-rotate-main">更换管理链接</button><span id="gu-main-new"></span></div>
+    <div class="btns"><button class="btn" data-a="close">关闭</button></div>`);
+  bg.querySelector('.share-modal').classList.add('wide');
+  wireShTop(bg); wireShareLink(bg);
+  bg.querySelector('[data-a="close"]').onclick = () => bg.remove();
+  const call = async (fn, okMsg) => { try { const r = await fn(); openGuests(r?.error || okMsg); } catch (e) { openGuests(String(e.message || e)); } };
+  const quotaVal = (v) => (String(v).trim() === '' ? null : Number(v));
+  bg.querySelector('#gu-new').onclick = () => call(() => api('/api/users', { method: 'POST', body: JSON.stringify({ note: bg.querySelector('#gu-note').value || '访客', quotaPct: quotaVal(bg.querySelector('#gu-quota').value) }) }), '已生成，复制链接发给对方即可');
+  bg.querySelector('#gu-k-save').onclick = () => call(() => api('/api/users/quota', { method: 'PATCH', body: JSON.stringify({ kManual: bg.querySelector('#gu-k').value }) }), '换算已更新');
+  bg.querySelector('#gu-rotate-main').onclick = async () => {
+    if (!confirm('更换后旧的管理链接立即失效（包括你其它设备上已打开的管理页面）。这个浏览器会自动换成新链接；个人链接不受影响。确定更换吗？')) return;
+    try {
+      const r = await api('/api/owner/rotate-key', { method: 'POST' });
+      const k = new URL(r.url).searchParams.get('k');
+      KEY = k; try { localStorage.setItem(KEY_NAME, k); } catch {}
+      openGuests('管理链接已更换。新链接（请保存好，只给自己用）：' + r.url);
+    } catch (e) { openGuests(String(e.message || e)); }
+  };
+  bg.querySelectorAll('.gu-card[data-u]').forEach((el) => {
+    const id = el.dataset.u, u = d.users.find((x) => x.id === id);
+    const patch = (body, okMsg) => call(() => api('/api/users/' + id, { method: 'PATCH', body: JSON.stringify(body) }), okMsg);
+    el.querySelectorAll('[data-a]').forEach((b) => (b.onclick = () => {
+      const a = b.dataset.a;
+      if (a === 'save') patch({ note: el.querySelector('[data-f="note"]').value, quotaPct: quotaVal(el.querySelector('[data-f="quota"]').value) }, '已保存');
+      if (a === 'toggle') patch({ enabled: !u.enabled }, u.enabled ? `已停用：${u.note} 的链接暂时打不开，对话都保留` : '已启用');
+      if (a === 'devices') patch({ devices: u.devices === false }, u.devices === false ? `已允许 ${u.note} 连接 TA 自己的电脑` : `已禁止 ${u.note} 连接自己的电脑`);
+      if (a === 'code') {
+        if (!u.code && !confirm(`允许 ${u.note} 使用 Code 模式？
+
+TA 的 Claude 将能在你这台电脑上直接执行命令（不经你批准）。文件读写工具会被限制在 TA 的专属文件夹 ClaudeRelay\guests\${u.id} 里，但命令本身能绕过这个限制，读到或改动你电脑上的其它文件（包括各个链接密钥和 Claude 登录凭据）。
+
+只给完全信得过的人开。随时可以关闭。`)) return;
+        patch({ code: !u.code }, u.code ? `已关闭 ${u.note} 的 Code 模式` : `已允许 ${u.note} 使用 Code 模式`);
+      }
+      if (a === 'pick') { guOpen = guOpen === id ? null : id; openGuests(); }
+      if (a === 'saveShared') { guOpen = null; patch({ shared: [...el.querySelectorAll('.gu-convs input:checked')].map((x) => x.value) }, '共享设置已保存'); }
+      if (a === 'view') { $('#share-modal')?.remove(); listFilter = id; setPref('list_filter', id); state.sidebar = true; applySidebar(); renderList(); }
+      if (a === 'rotate') { if (confirm(`给 ${u.note} 换一个新链接？旧链接立即失效，需要把新链接重新发给 TA。`)) call(() => api(`/api/users/${id}/rotate`, { method: 'POST' }), '已更换，请把新链接发给对方'); }
+      if (a === 'del') { if (confirm(`删除 ${u.note} 的子链接？链接立即失效。TA 的对话会保留在你这里（标记为「已删除的访客」）。`)) call(() => api('/api/users/' + id, { method: 'DELETE' }), '已删除'); }
+    }));
+    const s = el.querySelector('.gu-search');
+    if (s) s.oninput = () => el.querySelectorAll('.gu-convs label').forEach((l) => { l.style.display = l.textContent.toLowerCase().includes(s.value.toLowerCase()) ? '' : 'none'; });
+  });
+}
+async function openShares() {
+  const draw = async (msg) => {
+    let list = []; try { list = await api('/api/shares'); } catch {}
+    const n = (st) => list.filter((s) => st === 'all' || s.status === st).length;
+    const shown = list.filter((s) => shFilter === 'all' || s.status === shFilter);
+    const tab = (k, label) => `<button class="sh-tab ${shFilter === k ? 'on' : ''}" data-f="${k}">${label} ${n(k)}</button>`;
+    const bg = shareModal(`<div class="mh"><h3>分享管理</h3></div>${SH_TOP('shares')}
+      <p class="sh-intro">每个对话的分享链接互相独立，可以同时分享多个。<b>暂停</b>：临时关闭，恢复后同一个链接继续可用；<b>有效期</b>：到时间自动失效，可随时延长；<b>删除</b>：链接永久作废。</p>
+      <div class="sh-tabs">${tab('all', '全部')}${tab('active', '有效')}${tab('paused', '已暂停')}${tab('expired', '已过期')}</div>
+      ${msg ? `<div class="note sh-msg">${esc(msg)}</div>` : ''}
+      ${shown.length ? shown.map(shareCardHTML).join('') : `<div class="note">${list.length ? '这一类里没有分享。' : '还没有分享。在对话顶部点「分享」即可生成链接。'}</div>`}
+      <h4>分享本机 Claude Code 对话</h4>
+      <p class="sh-intro">桌面版或命令行里的 Claude Code 对话也能分享：粘贴它的对话 ID（会话 ID）。已分享过的 ID 再提交一次就是更新内容。</p>
+      <div class="sh-link"><input id="sh-cc" placeholder="例如 bc97f258-63bc-4fab-abcb-c7a75ad838f9"><button class="btn primary" id="sh-cc-go">生成链接</button></div>
+      <div class="btns"><button class="btn" data-a="close">关闭</button></div>`);
+    bg.querySelector('.share-modal').classList.add('wide');
+    wireShareCards(bg, draw);
+    wireShTop(bg);
+    bg.querySelectorAll('.sh-tab[data-f]').forEach((b) => (b.onclick = () => { shFilter = b.dataset.f; draw(); }));
+    bg.querySelector('[data-a="close"]').onclick = () => bg.remove();
+    bg.querySelector('#sh-cc-go').onclick = async (e) => {
+      const id = bg.querySelector('#sh-cc').value.trim(); if (!id) return;
+      e.target.disabled = true; e.target.textContent = '生成中…';
+      try { const r = await api('/api/shares', { method: 'POST', body: JSON.stringify({ sessionId: id }) }); shFilter = 'all'; draw(r.error || `已生成：${r.title}`); }
+      catch (err) { draw(String(err.message || err)); }
+    };
+  };
+  draw();
+}
+
+function render() {
+  const app = $('#app');
+  if (SHARE) return renderShare();
+  if (!KEY) {
+    app.innerHTML = `<div class="gate"><h2>需要访问链接</h2><p>请使用带访问密钥的完整链接打开本页（形如 <code>…/?k=xxxx</code>）。密钥在本机启动服务时打印在终端里。</p></div>`;
+    return;
+  }
+  app.innerHTML = `
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-head"><span class="logo">Claude</span><button class="icon-btn" id="sb-close" title="收起侧栏">${ICON.panel}</button></div>
+      <button class="new-chat" id="new-chat"><span class="plus">+</span>新对话</button>
+      <button class="sb-link" id="pv-sites" title="预览工作目录里的网页项目">${PV_ICON}网页预览</button>
+      <button class="sb-link" id="sh-list" title="管理分享链接，也可以分享本机 Claude Code 对话">${SHARE_ICON}分享管理</button>
+      <button class="sb-link" id="my-pc" title="把你自己的 Mac / Windows 连到这里，在 Code 模式里让 Claude 操作它">${PC_ICON}我的电脑</button>
+      <div class="sb-label">最近</div>
+      <div class="conv-list" id="conv-list"></div>
+      <div class="usage-mini" id="usage-mini" title="查看额度使用情况"></div>
+      <div class="sb-foot" id="sb-foot"></div>
+    </aside>
+    <div class="backdrop" id="backdrop"></div>
+    <main class="main" id="main"></main>`;
+  $('#sb-close').onclick = () => { state.sidebar = false; applySidebar(); };
+  $('#backdrop').onclick = () => { state.sidebar = false; applySidebar(); };
+  $('#new-chat').onclick = newChat;
+  $('#pv-sites').onclick = openSites;
+  $('#sh-list').onclick = openShares;
+  $('#my-pc').onclick = openDevices;
+  $('#usage-mini').onclick = openUsage;
+  applySidebar(); renderFoot(); renderUsageMini(); renderMain();
+}
+function applySidebar() { $('#sidebar')?.classList.toggle('collapsed', !state.sidebar); const t = $('#sb-open'); if (t) t.style.display = state.sidebar ? 'none' : ''; }
+function renderFoot() {
+  const f = $('#sb-foot'); if (!f) return;
+  f.innerHTML = `<span class="status-dot ${state.connected ? 'on' : ''}"></span>${state.connected ? '已连接本机 Claude' : '正在连接…'}`;
+}
+let listFilter = pref('list_filter', 'all'); // owner: all | mine | <guest id>
+function renderList() {
+  const el = $('#conv-list'); if (!el) return;
+  const row = (c) => `
+    <div class="conv ${state.current?.id === c.id ? 'active' : ''}" data-id="${c.id}">
+      ${c.running ? '<span class="dot"></span>' : ''}<span class="t">${esc(c.title)}</span>${c.ownerNote ? `<span class="ctag" title="访客的对话">${esc(c.ownerNote)}</span>` : ''}
+      ${c.shared ? '<span class="ctag" title="共享给你的只读对话">只读</span>' : '<span class="acts"><button data-act="rename">改名</button><button data-act="del">删除</button></span>'}
+    </div>`;
+  // Owner: a filter appears once any guest has conversations. Guest: own conversations, then the shared ones.
+  const guests = [...new Map(state.convs.filter((c) => c.owner).map((c) => [c.owner, c.ownerNote])).entries()];
+  if (listFilter !== 'all' && listFilter !== 'mine' && !guests.some(([id]) => id === listFilter)) listFilter = 'all';
+  const filt = guests.length && state.role !== 'guest'
+    ? `<select class="conv-filter" id="conv-filter"><option value="all">全部对话</option><option value="mine">只看我的</option>${guests.map(([id, n]) => `<option value="${esc(id)}">${id === 'legacy' ? '个人链接的对话' : '访客：' + esc(n)}</option>`).join('')}</select>` : '';
+  const list = state.convs.filter((c) => listFilter === 'all' || (listFilter === 'mine' ? !c.owner : c.owner === listFilter));
+  const mine = list.filter((c) => !c.shared), shared = list.filter((c) => c.shared);
+  el.innerHTML = filt + (mine.map(row).join('') || `<div class="sb-label" style="padding-left:10px">还没有对话</div>`)
+    + (shared.length ? `<div class="sb-label">共享给你的</div>${shared.map(row).join('')}` : '');
+  const fs_ = $('#conv-filter'); if (fs_) { fs_.value = listFilter; fs_.onchange = () => { listFilter = fs_.value; setPref('list_filter', listFilter); renderList(); }; }
+  el.querySelectorAll('.conv').forEach((row) => {
+    row.onclick = async (e) => {
+      const id = row.dataset.id, act = e.target.dataset.act;
+      if (act === 'del') { e.stopPropagation(); if (confirm('删除这个对话？')) { await api('/api/conversations/' + id, { method: 'DELETE' }); if (state.current?.id === id) newChat(); } }
+      else if (act === 'rename') { e.stopPropagation(); const t = prompt('新名称', state.convs.find((c) => c.id === id)?.title); if (t) api('/api/conversations/' + id, { method: 'PATCH', body: JSON.stringify({ title: t }) }); }
+      else openConv(id);
+      hideConvTip();
+    };
+    // A title cut off with "…" shows in full beside the row on hover.
+    row.onmouseenter = () => {
+      clearTimeout(convTipTimer);
+      convTipTimer = setTimeout(() => {
+        const t = row.querySelector('.t'); if (!t || t.scrollWidth <= t.clientWidth + 1) return;
+        hideConvTip();
+        const tip = document.createElement('div'); tip.id = 'conv-tip'; tip.className = 'conv-tip'; tip.textContent = t.textContent;
+        document.body.appendChild(tip);
+        const r = row.getBoundingClientRect();
+        let left = r.right + 8;
+        if (left + tip.offsetWidth > innerWidth - 8) left = Math.max(8, r.left); // no room on the right (narrow screen): overlay the row
+        tip.style.left = left + 'px';
+        tip.style.top = Math.max(8, Math.min(innerHeight - tip.offsetHeight - 8, r.top + r.height / 2 - tip.offsetHeight / 2)) + 'px';
+      }, 250);
+    };
+    row.onmouseleave = hideConvTip;
+  });
+  el.onscroll = hideConvTip;
+}
+let convTipTimer = 0;
+function hideConvTip() { clearTimeout(convTipTimer); $('#conv-tip')?.remove(); }
+
+const ICON = {
+  panel: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>',
+  plus: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+  up: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+  stop: '<svg width="12" height="12" viewBox="0 0 12 12"><rect width="12" height="12" rx="2" fill="currentColor"/></svg>',
+  chev: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>',
+  skill: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>',
+  gauge: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-6"/></svg>',
+  shield: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>',
+};
+
+function greeting() { const h = new Date().getHours(); return h < 5 ? '夜深了' : h < 12 ? '早上好' : h < 18 ? '下午好' : '晚上好'; }
+
+// ---------- drafts: unsent text, quotes and attachments are kept per conversation (and across reloads), like claude.ai ----------
+const DRAFT_LS = 'relay_drafts';
+const drafts = (() => { try { return JSON.parse(localStorage.getItem(DRAFT_LS)) || {}; } catch { return {}; } })();
+const draftKey = () => state.current?.id || 'new';
+let composerKey = null, draftTimer = 0;
+function saveDraft() {
+  const input = $('#input'); if (!input || composerKey === null) return;
+  const d = { text: input.value, quotes: state.quotes.slice(), attachments: state.attachments.filter((a) => a.status !== 'error'), at: Date.now() };
+  if (!d.text.trim() && !d.quotes.length && !d.attachments.length) delete drafts[composerKey]; else drafts[composerKey] = d;
+  clearTimeout(draftTimer); draftTimer = setTimeout(persistDrafts, 300);
+}
+function persistDrafts() {
+  const month = Date.now() - 30 * 864e5, out = {};
+  for (const [k, d] of Object.entries(drafts)) {
+    if (d.at < month) { delete drafts[k]; continue; }
+    out[k] = { text: d.text, quotes: d.quotes, at: d.at,
+      attachments: d.attachments.filter((a) => a.status === 'done' && a.id).map(({ id, name, type, size }) => ({ id, name, type, size })) };
+  }
+  try { localStorage.setItem(DRAFT_LS, JSON.stringify(out)); } catch {}
+}
+function loadDraft(key) {
+  const d = drafts[key];
+  state.quotes = d ? d.quotes.slice() : [];
+  state.attachments = d ? d.attachments.map((a) => (a.status ? a
+    : { ...a, status: 'done', url: a.type?.startsWith('image/') ? `/api/files/${a.id}?k=${encodeURIComponent(KEY)}` : null })) : [];
+  return d?.text || '';
+}
+function clearDraft() { delete drafts[draftKey()]; persistDrafts(); }
+addEventListener('pagehide', () => { saveDraft(); persistDrafts(); });
+
+function renderMain() {
+  const main = $('#main'); if (!main) return;
+  saveDraft(); // the composer is about to be rebuilt: keep what was typed for the conversation it belonged to
+  const c = state.current;
+  const top = `<div class="topbar"><button class="icon-btn" id="sb-open" title="展开侧栏">${ICON.panel}</button><span class="title">${esc(c?.title || '')}</span><span class="sp"></span>${c ? `<button class="pill" id="share-btn" title="生成只读分享链接">${SHARE_ICON}<span>分享</span></button>` : ''}<button class="pill" id="files-btn" title="这个对话里上传和生成的文件" style="display:none">${DL_ICON}<span>文件</span></button><button class="pill" id="usage-btn" title="额度使用情况">${ICON.gauge}<span id="usage-btn-label">额度</span></button></div>`;
+  if (!c) {
+    main.innerHTML = `${top}<div class="hero"><h1>${SPARK}<span>${greeting()}，有什么可以帮你？</span></h1>${composerHTML()}</div>`;
+  } else {
+    main.innerHTML = `${top}<div class="scroll" id="scroll"><div class="thread" id="thread"></div><div class="thread" id="perms" style="padding-top:0"></div></div><nav class="toc" id="toc"></nav>${composerHTML()}`;
+    $('#scroll').addEventListener('scroll', () => { cancelAnimationFrame(tocRaf); tocRaf = requestAnimationFrame(tocActive); }, { passive: true });
+    renderThread(true);
+  }
+  composerKey = draftKey();
+  const input = $('#input'); if (input) input.value = loadDraft(composerKey);
+  // A conversation shared with a guest is read-only: no composer; a branch from any reply continues it as their own.
+  if (c?.readOnly) $('#cwrap')?.insertAdjacentHTML('afterbegin', `<div class="ro-note">这是共享给你的只读对话。想接着聊，可以在任意一条回复下方点「分支」，会生成一个属于你自己的新对话。</div>`);
+  $('#cwrap')?.classList.toggle('readonly', !!c?.readOnly);
+  if (c?.ownerNote && state.role !== 'guest') $('.topbar .title')?.insertAdjacentHTML('afterend', `<span class="ctag" title="${c.ownerKind === 'legacy' ? '用个人链接建的对话' : '这是访客的对话'}">${c.ownerKind === 'legacy' ? '个人链接' : '访客：' + esc(c.ownerNote)}</span>`);
+  $('#sb-open').onclick = () => { state.sidebar = true; applySidebar(); };
+  $('#usage-btn').onclick = openUsage;
+  $('#files-btn').onclick = openFiles;
+  const sb = $('#share-btn'); if (sb) sb.onclick = openShare;
+  renderFilesBtn();
+  applySidebar();
+  renderUsageMini();
+  bindComposer();
+  renderRlBanner();
+  renderPerms();
+}
+
+function composerHTML() {
+  return `<div class="composer-wrap" id="cwrap">
+    <div class="composer">
+      <div class="quote-list" id="quote-list"></div>
+      <div class="att-list" id="att-list"></div>
+      <textarea id="input" rows="1" placeholder="${state.current ? '回复 Claude…' : '今天想做点什么？输入 / 使用技能'}"></textarea>
+      <div class="c-row">
+        <button class="icon-btn" id="attach" title="添加文件或图片">${ICON.plus}</button>
+        <button class="pill" id="skills-btn" title="技能">${ICON.skill}<span>技能</span></button>
+        <span class="mode-toggle" id="mode-toggle" title="Chat：像 claude.ai 一样聊天（只读工具）；Code：Claude Code 智能体，可在本机执行操作">
+          <button data-m="chat">Chat</button><button data-m="code">Code</button></span>
+        <button class="pill" id="perm-btn" title="权限模式">${ICON.shield}<span id="perm-label"></span></button>
+        <button class="pill" id="dev-btn" title="Code 模式在哪台电脑上运行">${PC_ICON}<span id="dev-label"></span></button>
+        <span class="sp"></span>
+        <button class="pill" id="model-btn"><span id="model-label"></span>${ICON.chev}</button>
+        <button class="send" id="send" title="发送">${ICON.up}</button>
+      </div>
+      <input type="file" id="file" multiple hidden>
+    </div>
+    <div class="hint" id="hint"></div>
+  </div>`;
+}
+
+function modelName(v) { const m = state.models.find((x) => x.value === v); return m ? m.displayName : v; }
+function renderComposerState() {
+  const ml = $('#model-label'); if (ml) ml.textContent = modelName(state.model) + (state.effort ? ' · ' + EFFORTS.find((e) => e[0] === state.effort)[1] : '');
+  const pl = $('#perm-label'); if (pl) pl.textContent = PERM_MODES.find((p) => p[0] === state.permissionMode)?.[1];
+  // Permission modes only matter for the Code agent; Chat mode uses pre-approved read-only tools.
+  const pb = $('#perm-btn'); if (pb) pb.style.display = state.mode === 'chat' || state.target ? 'none' : '';
+  const db = $('#dev-btn'); if (db) { db.style.display = state.mode === 'code' && (state.devices?.length || state.devAllowed) ? '' : 'none'; const dl = $('#dev-label'); if (dl) dl.textContent = targetName(); }
+  document.querySelectorAll('#mode-toggle button').forEach((b) => b.classList.toggle('on', b.dataset.m === state.mode));
+  const s = $('#send'); if (!s) return;
+  const running = !!state.current?.running;
+  s.className = 'send' + (running ? ' stop' : '');
+  s.innerHTML = running ? ICON.stop : ICON.up;
+  s.title = running ? '停止' : '发送';
+  const uploading = state.attachments.some((a) => a.status === 'uploading');
+  s.disabled = !running && (uploading || !($('#input').value.trim() || state.quotes.length || state.attachments.some((a) => a.status === 'done')));
+  const hint = $('#hint');
+  if (hint) hint.textContent = !state.connected ? '正在重新连接本机服务…（已发送的消息会在连接恢复后自动送达）'
+    : uploading ? '文件上传中…' : state.role === 'guest' ? `访客链接${state.me ? '（' + state.me + '）' : ''} · 只能看到你自己的对话 · ${state.mode === 'code' ? 'Code 模式：文件放在你的专属文件夹里' : 'Chat 模式'}` : '消息会转发到你本机已登录的 Claude 执行，工具调用会在本机运行。';
+}
+
+function bindComposer() {
+  const input = $('#input'); if (!input) return;
+  const autosize = () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, innerHeight * .4) + 'px'; };
+  input.oninput = () => { autosize(); renderComposerState(); slashMenu(); saveDraft(); };
+  if (input.value) autosize();
+  input.onkeydown = (e) => {
+    const menu = $('#slash-menu');
+    if (menu && ['ArrowDown', 'ArrowUp', 'Enter', 'Tab', 'Escape'].includes(e.key)) { menuKey(e, menu); return; }
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && innerWidth > 820) { e.preventDefault(); submit(); }
+  };
+  input.onclick = () => slashMenu(); // caret moved into / out of a "/word"
+  input.onkeyup = (e) => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) slashMenu(); };
+  input.onpaste = (e) => { const files = [...(e.clipboardData?.files || [])]; if (files.length) { e.preventDefault(); addFiles(files); } };
+  $('#cwrap').ondragover = (e) => e.preventDefault();
+  $('#cwrap').ondrop = (e) => { e.preventDefault(); addFiles([...e.dataTransfer.files]); };
+  $('#send').onclick = () => (state.current?.running ? send({ type: 'stop', convId: state.current.id }) : submit());
+  $('#attach').onclick = () => $('#file').click();
+  $('#file').onchange = (e) => { addFiles([...e.target.files]); e.target.value = ''; };
+  $('#model-btn').onclick = (e) => { e.stopPropagation(); modelMenu(); };
+  $('#perm-btn').onclick = (e) => { e.stopPropagation(); permMenu(); };
+  $('#dev-btn').onclick = (e) => { e.stopPropagation(); devMenu(); };
+  document.querySelectorAll('#mode-toggle button').forEach((b) => (b.onclick = () => { state.mode = b.dataset.m; setPref('mode', state.mode); renderComposerState(); }));
+  // Skills button: type a "/" at the caret (with a space before it if needed) and open the menu; the text stays.
+  $('#skills-btn').onclick = (e) => {
+    e.stopPropagation();
+    const v = input.value, pos = document.activeElement === input ? input.selectionStart : v.length;
+    input.focus(); input.setSelectionRange(pos, pos);
+    if (!slashToken(input)) {
+      const pre = v.slice(0, pos), ins = (pre && !/\s$/.test(pre) ? ' ' : '') + '/';
+      input.value = pre + ins + v.slice(pos);
+      input.focus(); input.setSelectionRange(pos + ins.length, pos + ins.length);
+    } else input.focus();
+    slashMenu(true);
+  };
+  renderAtts(); renderQuotes(); renderComposerState();
+  if (innerWidth > 820) input.focus();
+}
+
+// Like claude.ai: large photos are downscaled in the browser (long edge 2000 px) before upload.
+async function shrinkImage(f) {
+  if (!/^image\/(png|jpeg|webp)$/.test(f.type) || f.size < 1.5 * 1024 * 1024) return f;
+  try {
+    const bmp = await createImageBitmap(f);
+    const scale = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.88));
+    return blob && blob.size < f.size ? new File([blob], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : f;
+  } catch { return f; }
+}
+function uploadFile(a, file) {
+  const xhr = new XMLHttpRequest();
+  a.xhr = xhr;
+  xhr.open('POST', '/api/upload');
+  xhr.setRequestHeader('x-access-key', KEY);
+  xhr.setRequestHeader('x-file-name', encodeURIComponent(file.name));
+  xhr.setRequestHeader('content-type', file.type || 'application/octet-stream');
+  xhr.upload.onprogress = (e) => { if (e.lengthComputable) { a.progress = e.loaded / e.total; renderAtts(); } };
+  xhr.onload = () => {
+    if (xhr.status === 200) { Object.assign(a, JSON.parse(xhr.responseText), { status: 'done' }); }
+    else { a.status = 'error'; }
+    renderAtts(); renderComposerState();
+  };
+  xhr.onerror = () => { a.status = 'error'; renderAtts(); renderComposerState(); };
+  xhr.send(file);
+}
+async function addFiles(files) {
+  for (const orig of files) {
+    if (orig.size > 50 * 1024 * 1024) { alert(`${orig.name} 超过 50MB`); continue; }
+    const a = { name: orig.name, type: orig.type || 'application/octet-stream', size: orig.size, status: 'uploading', progress: 0,
+      url: orig.type.startsWith('image/') ? URL.createObjectURL(orig) : null };
+    state.attachments.push(a); renderAtts(); renderComposerState();
+    const f = await shrinkImage(orig);
+    a.name = f.name; a.type = f.type || a.type;
+    uploadFile(a, f);
+  }
+}
+function renderAtts() {
+  const el = $('#att-list'); if (!el) return;
+  el.innerHTML = state.attachments.map((a, i) => {
+    const st = a.status === 'uploading' ? ` · ${Math.round((a.progress || 0) * 100)}%` : a.status === 'error' ? ' · 上传失败' : '';
+    const body = a.url ? `<img src="${a.url}" style="${a.status === 'uploading' ? 'opacity:.5' : ''}">` : `<span class="chip">${esc(a.name)}${st}</span>`;
+    return `<div class="att" title="${esc(a.name + st)}">${body}${a.url && st ? `<span class="chip" style="position:absolute;bottom:2px;left:2px;padding:0 4px;font-size:10px">${st.slice(3)}</span>` : ''}<button class="x" data-i="${i}">×</button></div>`;
+  }).join('');
+  el.querySelectorAll('.x').forEach((b) => (b.onclick = () => { const [a] = state.attachments.splice(+b.dataset.i, 1); a?.xhr?.abort(); renderAtts(); renderComposerState(); }));
+  saveDraft();
+}
+
+// ---------- in-conversation index: one tick per question; hover = summary card; click = jump ----------
+const BRANCH_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7v10"/><path d="M18 10c0 4-6 3-11.5 7"/></svg>';
+let tocRaf = 0;
+const plain = (s) => String(s || '').replace(/```[\s\S]*?```/g, ' [代码] ').replace(/\$\$[\s\S]*?\$\$/g, ' [公式] ').replace(/[#>*_`|~\[\]]+/g, '').replace(/\(https?:[^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+function tocEntries() {
+  const ms = state.current?.messages || [];
+  const out = [];
+  ms.forEach((m, i) => {
+    if (m.role !== 'user') return;
+    const a = ms[i + 1];
+    const reply = a ? plain((a.blocks || []).filter((b) => b.type === 'text').map((b) => b.text).join(' ')) : '';
+    const tools = a ? (a.blocks || []).filter((b) => b.type === 'tool').length : 0;
+    out.push({ i, n: out.length + 1, q: m.text || (m.quotes?.length ? '❝ ' + m.quotes[0] : '') || (m.attachments || []).map((x) => x.name).join(', ') || '（空）',
+      a: reply || (a && !a.done ? '正在回复…' : ''), tools, secs: a?.result?.durationMs ? (a.result.durationMs / 1000).toFixed(1) : '',
+      atts: (m.attachments || []).length, quotes: (m.quotes || []).length, inherited: state.current.branchOf && i <= state.current.branchOf.index });
+  });
+  return out;
+}
+function renderToc() {
+  const nav = $('#toc'); if (!nav) return;
+  const es = tocEntries();
+  if (es.length < 3) { nav.innerHTML = ''; return; }
+  nav.innerHTML = `<div class="toc-inner">${es.map((e) => `<div class="toc-item${e.inherited ? ' br' : ''}" data-i="${e.i}"><i></i></div>`).join('')}</div>`;
+  nav.querySelectorAll('.toc-item').forEach((it) => {
+    const e = es.find((x) => x.i === +it.dataset.i);
+    it.onmouseenter = () => showTocTip(it, e);
+    it.onmouseleave = hideTocTip;
+    it.onclick = () => { hideTocTip(); jumpTo(e.i); };
+  });
+  tocActive();
+}
+function showTocTip(it, e) {
+  hideTocTip();
+  const tip = document.createElement('div'); tip.className = 'toc-tip'; tip.id = 'toc-tip';
+  const bits = [`第 ${e.n} 轮`, e.inherited ? '来自原对话' : '', e.secs ? e.secs + 's' : '', e.tools ? `${e.tools} 次工具调用` : '', e.atts ? `${e.atts} 个附件` : '', e.quotes ? `${e.quotes} 段引用` : ''].filter(Boolean);
+  tip.innerHTML = `<div class="n">${bits.map((b) => `<span>${esc(b)}</span>`).join('')}</div><div class="q">${esc(e.q.slice(0, 300))}</div>${e.a ? `<div class="a">${esc(e.a.slice(0, 400))}</div>` : ''}`;
+  document.body.appendChild(tip);
+  const r = it.getBoundingClientRect();
+  tip.style.left = r.right + 10 + 'px';
+  tip.style.top = Math.max(8, Math.min(innerHeight - tip.offsetHeight - 8, r.top + r.height / 2 - tip.offsetHeight / 2)) + 'px';
+}
+function hideTocTip() { $('#toc-tip')?.remove(); }
+function jumpTo(i) {
+  const el = $(`#thread .msg-user[data-i="${i}"]`), sc = $('#scroll'); if (!el || !sc) return;
+  sc.scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });
+  const b = el.querySelector('.bubble') || el; b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash');
+}
+// Click a quote in your own message -> scroll to the passage it was selected from and highlight it.
+// Matching ignores whitespace (a selection's text and the DOM's text differ in line breaks); KaTeX's hidden MathML is skipped.
+function findTextRange(root, text) {
+  const map = [];
+  let hay = '';
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => (n.parentElement?.closest('.katex-mathml, .meta, button, .copy') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+  });
+  for (let n; (n = walker.nextNode());) {
+    const s = n.nodeValue;
+    for (let o = 0; o < s.length; o++) if (!/\s/.test(s[o])) { hay += s[o]; map.push([n, o]); }
+  }
+  const needle = String(text || '').replace(/…$/, '').replace(/\s+/g, '');
+  if (!needle) return null;
+  let at = hay.indexOf(needle), len = needle.length;
+  // Fall back to the start, then the end, of the quote (e.g. when it spans a formula).
+  for (const k of [60, 30, 15]) {
+    if (at >= 0 || needle.length <= k) break;
+    at = hay.indexOf(needle.slice(0, k)); len = k;
+    if (at < 0) { const j = hay.indexOf(needle.slice(-k)); if (j >= 0) { at = j; len = k; } }
+  }
+  if (at < 0) return null;
+  const r = document.createRange();
+  r.setStart(map[at][0], map[at][1]);
+  r.setEnd(map[at + len - 1][0], map[at + len - 1][1] + 1);
+  return r;
+}
+let quoteHlTimer = 0;
+function jumpToQuote(text, src, from) {
+  const sc = $('#scroll'); if (!sc) return;
+  const msgEl = (k) => $(`#thread .msg-ai[data-i="${k}"], #thread .msg-user[data-i="${k}"]`);
+  const order = [];
+  if (Number.isInteger(src)) order.push(src);
+  for (let k = from - 1; k >= 0; k--) if (k !== src) order.push(k); // older quotes have no source index: search backwards
+  let range = null, el = null;
+  for (const k of order) { const e = msgEl(k); if (!e) continue; const r = findTextRange(e, text); if (r) { range = r; el = e; break; } }
+  if (!range) { // text not found: at least go to the message it came from
+    const e = Number.isInteger(src) && msgEl(src); if (!e) return;
+    sc.scrollTo({ top: e.offsetTop - 12, behavior: 'smooth' });
+    e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash');
+    return;
+  }
+  const rr = range.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+  sc.scrollTo({ top: Math.max(0, sc.scrollTop + rr.top - sr.top - sc.clientHeight / 3), behavior: 'smooth' });
+  clearTimeout(quoteHlTimer);
+  if (window.CSS?.highlights && window.Highlight) {
+    CSS.highlights.set('quote-src', new Highlight(range));
+    quoteHlTimer = setTimeout(() => CSS.highlights.delete('quote-src'), 2600);
+  } else {
+    const b = range.startContainer.parentElement?.closest('p, li, pre, td, blockquote, h1, h2, h3, h4, .bubble') || el;
+    b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash');
+  }
+}
+function tocActive() {
+  const sc = $('#scroll'), nav = $('#toc'); if (!sc || !nav?.firstChild) return;
+  const line = sc.scrollTop + Math.min(120, sc.clientHeight * 0.3);
+  let cur = null;
+  $('#thread').querySelectorAll('.msg-user').forEach((u) => { if (u.offsetTop <= line) cur = u.dataset.i; });
+  if (sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 4) cur = [...$('#thread').querySelectorAll('.msg-user')].at(-1)?.dataset.i;
+  nav.querySelectorAll('.toc-item').forEach((it) => it.classList.toggle('on', it.dataset.i === cur));
+}
+
+// ---------- branches ----------
+async function branchFrom(i, btn) {
+  const c = state.current; if (!c) return;
+  btn.disabled = true; btn.lastChild.textContent = ' 分支中…';
+  try {
+    const r = await fetch(`/api/conversations/${c.id}/branch`, { method: 'POST', headers: { 'x-access-key': KEY, 'content-type': 'application/json' }, body: JSON.stringify({ index: i }) });
+    const nc = await r.json();
+    if (!r.ok) throw new Error(nc.error || r.status);
+    if (!state.convs.some((x) => x.id === nc.id)) state.convs.unshift({ id: nc.id, title: nc.title });
+    await openConv(nc.id);
+    toBottom();
+  } catch (e) {
+    alert('分支失败：' + (e.message || e));
+    btn.disabled = false; btn.lastChild.textContent = ' 分支';
+  }
+}
+
+// ---------- quote reply: select text in the thread -> "回复" button -> quote card above the input ----------
+const QUOTE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>';
+function renderQuotes() {
+  const el = $('#quote-list'); if (!el) return;
+  el.innerHTML = state.quotes.map((q, i) => `<div class="qcard" title="${esc(q.text)}"><span class="qi">❝</span><span class="qt">${esc(q.text)}</span><button class="x" data-i="${i}" title="移除引用">×</button></div>`).join('');
+  el.querySelectorAll('.x').forEach((b) => (b.onclick = () => { state.quotes.splice(+b.dataset.i, 1); renderQuotes(); renderComposerState(); }));
+  saveDraft();
+}
+function addQuote(text, src = null) {
+  text = text.replace(/ /g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  if (!text) return;
+  if (text.length > 8000) text = text.slice(0, 8000) + '…';
+  if (!state.quotes.some((q) => q.text === text)) state.quotes.push({ text, src });
+  renderQuotes(); renderComposerState();
+  const input = $('#input'); if (input) { input.focus({ preventScroll: true }); input.setSelectionRange(input.value.length, input.value.length); }
+}
+let selBtn = null;
+function hideSelReply() { selBtn?.remove(); selBtn = null; }
+function selectionInThread() {
+  const sel = getSelection();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+  const text = sel.toString().trim();
+  const th = $('#thread');
+  if (!text || !th) return null;
+  const range = sel.getRangeAt(0);
+  const el = (n) => (n.nodeType === 1 ? n : n.parentElement);
+  const a = el(range.startContainer), b = el(range.endContainer);
+  // Only text inside the conversation's messages (not the composer, sidebar or menus).
+  if (!a || !b || !th.contains(a) || !th.contains(b)) return null;
+  const msg = a.closest('.msg-ai, .msg-user') || b.closest('.msg-ai, .msg-user');
+  if (!msg) return null;
+  const src = msg.dataset.i !== undefined ? +msg.dataset.i : null;
+  return { text, src, rect: range.getBoundingClientRect() };
+}
+function showSelReply() {
+  const s = selectionInThread();
+  if (!s) { hideSelReply(); return; }
+  if (!selBtn) {
+    selBtn = document.createElement('button');
+    selBtn.className = 'sel-reply';
+    selBtn.innerHTML = QUOTE_ICON + '<span>回复</span>';
+    selBtn.onmousedown = (e) => e.preventDefault(); // keep the selection while clicking
+    // Clear the page selection first: doing it after addQuote() would also remove the caret it puts in the input.
+    selBtn.onclick = () => { const cur = selectionInThread(); getSelection().removeAllRanges(); hideSelReply(); if (cur) addQuote(cur.text, cur.src); };
+    document.body.appendChild(selBtn);
+  }
+  const r = s.rect, w = selBtn.offsetWidth, h = selBtn.offsetHeight;
+  selBtn.style.visibility = r.bottom < 48 || r.top > innerHeight ? 'hidden' : ''; // selection scrolled out of view
+  let top = r.top - h - 8;
+  if (top < 56) top = r.bottom + 8;
+  const left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+  selBtn.style.top = top + 'px'; selBtn.style.left = left + 'px';
+}
+let selTimer = 0;
+document.addEventListener('selectionchange', () => { clearTimeout(selTimer); selTimer = setTimeout(showSelReply, 150); });
+document.addEventListener('scroll', () => { if (selBtn) showSelReply(); }, true);
+addEventListener('resize', () => { if (selBtn) showSelReply(); });
+
+function submit() {
+  const input = $('#input');
+  const text = hoistSlash(input.value.trim());
+  const ready = state.attachments.filter((a) => a.status === 'done');
+  if (state.attachments.some((a) => a.status === 'uploading')) return;
+  const quotes = state.quotes.map((q) => q.text), quoteSrc = state.quotes.map((q) => q.src);
+  if (!text && !ready.length && !quotes.length) return;
+  const attachments = ready.map(({ id, name, type, size }) => ({ id, name, type, size }));
+  input.value = ''; state.attachments = []; state.quotes = []; clearDraft(); // sent: this conversation has no draft any more
+  // Show the exchange immediately; a new conversation gets its id here so it survives reconnects.
+  const isNew = !state.current;
+  if (isNew) {
+    state.current = { id: uuid(), title: (text || quotes[0] || attachments[0]?.name || '新对话').slice(0, 40), messages: [] };
+    state.convs.unshift({ id: state.current.id, title: state.current.title, running: true });
+    state.current.messages.push({ role: 'user', text, quotes, quoteSrc, attachments }, { role: 'assistant', blocks: [] });
+    state.current.running = true;
+    renderMain(); renderList();
+  } else {
+    state.current.messages.push({ role: 'user', text, quotes, quoteSrc, attachments }, { role: 'assistant', blocks: [] });
+    state.current.running = true;
+    renderThread(true);
+  }
+  send({ type: 'send', clientId: uuid(), convId: state.current.id, isNew, title: state.current.title, text,attachments, quotes, quoteSrc, model: state.model, effort: state.effort, permissionMode: state.permissionMode, mode: state.mode, device: state.mode === 'code' && state.target ? state.target : undefined });
+  $('#input').value = ''; state.attachments = []; state.quotes = []; renderAtts(); renderQuotes(); renderComposerState();
+}
+
+// ---------- menus ----------
+function closeMenus() { document.querySelectorAll('.menu').forEach((m) => m.remove()); }
+document.addEventListener('click', (e) => { if (!e.target.closest('.menu')) closeMenus(); });
+function placeMenu(menu, anchor, above = true) {
+  const wrap = $('#cwrap'); wrap.appendChild(menu);
+  const a = anchor.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+  let left = Math.min(a.left - w.left, w.width - menu.offsetWidth - 16);
+  menu.style.left = Math.max(16, left) + 'px';
+  if (above) menu.style.bottom = (w.bottom - a.top + 6) + 'px'; else menu.style.top = (a.bottom - w.top + 6) + 'px';
+}
+function modelMenu() {
+  closeMenus();
+  const m = document.createElement('div'); m.className = 'menu';
+  const cur = state.models.find((x) => x.value === state.model);
+  const levels = cur?.supportedEffortLevels || ['low', 'medium', 'high', 'xhigh', 'max'];
+  m.innerHTML = `<div class="sec">模型</div>` + state.models.map((x) => `
+    <div class="item" data-v="${esc(x.value)}"><span class="ck">${x.value === state.model ? '✓' : ''}</span><div><div class="n">${esc(x.displayName)}</div>${x.description ? `<div class="d">${esc(x.description)}</div>` : ''}</div></div>`).join('') +
+    `<div class="sec">思考强度 (effort)</div><div class="seg">${EFFORTS.filter((e) => !e[0] || levels.includes(e[0])).map((e) => `<button data-e="${e[0]}" class="${e[0] === state.effort ? 'on' : ''}">${e[1]}</button>`).join('')}</div>`;
+  m.querySelectorAll('.item').forEach((it) => (it.onclick = () => { state.model = it.dataset.v; setPref('model', state.model); closeMenus(); renderComposerState(); }));
+  m.querySelectorAll('[data-e]').forEach((b) => (b.onclick = (e) => { e.stopPropagation(); state.effort = b.dataset.e; setPref('effort', state.effort); modelMenu(); renderComposerState(); }));
+  placeMenu(m, $('#model-btn'));
+}
+function permMenu() {
+  closeMenus();
+  const m = document.createElement('div'); m.className = 'menu';
+  m.innerHTML = `<div class="sec">工具权限</div>` + PERM_MODES.map(([v, n, d]) => `
+    <div class="item" data-v="${v}"><span class="ck">${v === state.permissionMode ? '✓' : ''}</span><div><div class="n">${n}</div><div class="d">${d}</div></div></div>`).join('');
+  m.querySelectorAll('.item').forEach((it) => (it.onclick = () => { state.permissionMode = it.dataset.v; setPref('perm', state.permissionMode); closeMenus(); renderComposerState(); }));
+  placeMenu(m, $('#perm-btn'));
+}
+let slashSel = 0, slashQ = null;
+// The "/word" being typed at the caret (at the start or after a space), anywhere in the text: { start, end, q } or null.
+function slashToken(input) {
+  const pos = input.selectionStart ?? input.value.length;
+  const m = input.value.slice(0, pos).match(/(^|\s)\/([^\s\/]*)$/);
+  return m ? { start: pos - m[2].length - 1, end: pos, q: m[2] } : null;
+}
+function slashMenu(force) {
+  const input = $('#input');
+  const tok = slashToken(input);
+  $('#slash-menu')?.remove();
+  if (!tok && !force) { slashQ = null; return; }
+  const q = (tok?.q || '').toLowerCase();
+  if (q !== slashQ) slashSel = 0; // new search text: start from the best match
+  slashQ = q;
+  // Names starting with what was typed come first, then names that merely contain it.
+  const items = [...state.commands.filter((c) => c.name.toLowerCase().startsWith(q)),
+    ...state.commands.filter((c) => !c.name.toLowerCase().startsWith(q) && (c.name.toLowerCase().includes(q) || (q.length > 1 && (c.description || '').toLowerCase().includes(q))))];
+  if (!items.length) return;
+  slashSel = Math.min(slashSel, items.length - 1);
+  const m = document.createElement('div'); m.className = 'menu'; m.id = 'slash-menu';
+  m.innerHTML = `<div class="sec">技能与命令</div>` + items.map((c, i) => `
+    <div class="item ${i === slashSel ? 'sel' : ''}" data-n="${esc(c.name)}"><span class="ck">/</span><div><div class="n">${esc(c.name)} <span style="color:var(--text-3);font-size:12px">${esc(c.argumentHint || '')}</span></div><div class="d">${esc(c.description)}</div></div></div>`).join('');
+  m.querySelectorAll('.item').forEach((it) => (it.onclick = (e) => { e.stopPropagation(); pickSlash(it.dataset.n); }));
+  placeMenu(m, $('#input'));
+}
+// Replace only the "/word" at the caret with "/name ", keeping everything else that was typed.
+function pickSlash(name) {
+  const input = $('#input');
+  const v = input.value, tok = slashToken(input);
+  const pos = input.selectionStart ?? v.length;
+  const start = tok ? tok.start : pos, end = tok ? tok.end : pos;
+  const before = v.slice(0, start), after = v.slice(end).replace(/^\s+/, '');
+  const ins = `/${name} `;
+  input.value = before + ins + after;
+  const caret = before.length + ins.length;
+  $('#slash-menu')?.remove(); slashQ = null;
+  input.focus(); input.setSelectionRange(caret, caret);
+  input.dispatchEvent(new Event('input'));
+}
+// Skills only run when the message starts with "/name": a skill picked in the middle of the text is moved to the front.
+function hoistSlash(text) {
+  if (text.startsWith('/')) return text;
+  const names = new Set(state.commands.map((c) => c.name));
+  const m = text.match(/(^|\s)\/([^\s\/]+)(?=\s|$)/);
+  if (!m || !names.has(m[2])) return text;
+  const rest = (text.slice(0, m.index) + m[1] + text.slice(m.index + m[0].length)).replace(/[ \t]{2,}/g, ' ').trim();
+  return `/${m[2]}${rest ? ' ' + rest : ''}`;
+}
+function menuKey(e, menu) {
+  const items = [...menu.querySelectorAll('.item')];
+  if (e.key === 'Escape') { menu.remove(); return; }
+  e.preventDefault();
+  if (e.key === 'ArrowDown') slashSel = (slashSel + 1) % items.length;
+  else if (e.key === 'ArrowUp') slashSel = (slashSel - 1 + items.length) % items.length;
+  else { pickSlash(items[slashSel].dataset.n); return; }
+  items.forEach((it, i) => it.classList.toggle('sel', i === slashSel));
+  items[slashSel].scrollIntoView({ block: 'nearest' });
+}
+
+// ---------- thread ----------
+// ---------- image generation progress card (the generate_image tool reports progress over the WebSocket) ----------
+const IMG_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="m21 15-5-5L5 21"/></svg>';
+function imgPercent(p, running) {
+  if (!running) return 100;
+  if (!p) return 3;
+  const total = p.total || 1, done = p.done || 0;
+  if (p.stage === 'start' || p.stage === 'model') return 5;
+  if (p.stage === 'saving') return 96;
+  // Each picture takes ~25 s: creep towards the next milestone while waiting, never past it.
+  const per = 88 / total, base = 8 + per * done;
+  const into = Math.max(0, (p.elapsed || 0) - done * 25);
+  return Math.min(base + per * 0.95, base + per * (1 - Math.exp(-into / 18)));
+}
+function imageToolHTML(b) {
+  const i = b.input || {}, p = b.progress, running = b.result === undefined;
+  let res = null; try { const first = typeof b.result === 'string' ? b.result.trim().split('\n')[0] : ''; res = first.startsWith('{') ? JSON.parse(first) : null; } catch {}
+  const failed = b.isError || res?.ok === false || p?.stage === 'error';
+  const n = i.n || p?.total || 1;
+  // Several image calls in one reply run one after another: a call that hasn't started yet is queued, not stuck.
+  const turnBlocks = state.current?.messages.at(-1)?.blocks || [];
+  const queued = running && !p && turnBlocks.some((x) => x !== b && x?.type === 'tool' && /generate_image$/.test(x.name || '') && x.result === undefined && x.progress);
+  const title = running ? (p?.text || (queued ? '排队中，等前面的图片画完' : '正在准备生成图片')) : failed ? '生成图片失败' : `已生成 ${res?.files?.length || p?.done || n} 张图片`;
+  const elapsed = running ? (p?.elapsed || 0) + Math.round((Date.now() - (b._progressAt || Date.now())) / 1000) : (res?.seconds ?? p?.elapsed);
+  const meta = [p?.model || res?.model, elapsed != null ? `${running ? '已用' : '用时'} ${elapsed} 秒` : '', running ? `通常每张 20–60 秒` : '', i.aspect ? `比例 ${i.aspect}` : '', n > 1 ? `${n} 张` : ''].filter(Boolean).join(' · ');
+  const err = failed ? (res?.error || p?.text || (typeof b.result === 'string' ? b.result : '')) : '';
+  // Pictures appear here one by one as they are drawn (before the reply ends), each with open / download.
+  const imgs = b.images?.length ? b.images : (res?.files || []).map((f) => ({ name: f.split(/[\\/]/).pop() }));
+  const cid = state.current?.id;
+  const url = (k, dl) => `/api/conversations/${cid}/img/${encodeURIComponent(b.id)}/${k}?${kq()}${dl ? '&dl=1' : ''}`;
+  const waiting = running && !failed ? Math.max(0, n - imgs.length) : 0;
+  const grid = cid && (imgs.length || waiting) ? `<div class="igp-grid">${imgs.map((f, k) => `<div class="igp-img">
+      <a href="${url(k)}" target="_blank" title="${esc(f.name)}"><img src="${url(k)}" loading="lazy" alt=""></a>
+      <div class="igp-acts"><a href="${url(k)}" target="_blank" rel="noopener">打开</a><a href="${url(k, true)}" download="${esc(f.name)}">${DL_ICON}下载</a></div></div>`).join('')}
+    ${Array.from({ length: waiting }, () => '<div class="igp-img igp-wait"><span>生成中…</span></div>').join('')}</div>` : '';
+  return `<div class="igp ${running ? 'run' : failed ? 'err' : 'ok'}" data-id="${esc(b.id)}" data-running="${running ? 1 : ''}">
+    <div class="igp-head">${IMG_ICON}<b>${esc(title)}</b>${running ? '<span class="igp-dot"></span>' : ''}</div>
+    <div class="igp-bar"><i style="width:${imgPercent(p, running).toFixed(1)}%"></i></div>
+    <div class="igp-meta" data-elapsed="${running ? (p?.elapsed || 0) : ''}">${esc(meta)}</div>
+    ${err ? `<div class="igp-err">${esc(String(err).slice(0, 400))}</div>` : ''}
+    ${grid}
+    ${i.prompt ? `<details class="igp-prompt"><summary>提示词</summary><div>${esc(i.prompt)}</div></details>` : ''}
+  </div>`;
+}
+// Live progress for a running image tool: update its card in place (no full re-render).
+function onToolProgress(m) {
+  if (state.current?.id !== m.convId) return;
+  const t = state.current.messages.at(-1); if (t?.role !== 'assistant') return;
+  const b = (m.blockId && t.blocks.find((x) => x?.id === m.blockId)) || [...t.blocks].reverse().find((x) => x?.type === 'tool' && /generate_image$/.test(x.name || '') && x.result === undefined);
+  if (!b) return;
+  b.progress = m.progress; b._progressAt = Date.now();
+  if (m.images) b.images = m.images;
+  const el = document.querySelector(`.igp[data-id="${CSS.escape(b.id)}"]`);
+  if (el) el.outerHTML = imageToolHTML(b); else renderLastTurn();
+}
+setInterval(() => { // tick the elapsed time and the bar between progress messages
+  const t = state.current?.messages.at(-1); if (!t?.blocks) return;
+  document.querySelectorAll('.igp[data-running="1"]').forEach((el) => {
+    const b = t.blocks.find((x) => x?.id === el.dataset.id);
+    if (b && b.result === undefined) { const p = { ...(b.progress || {}), elapsed: (b.progress?.elapsed || 0) + Math.round((Date.now() - (b._progressAt || Date.now())) / 1000) }; el.querySelector('.igp-bar i').style.width = imgPercent(p, true).toFixed(1) + '%'; const meta = el.querySelector('.igp-meta'); meta.textContent = meta.textContent.replace(/已用 \d+ 秒/, `已用 ${p.elapsed} 秒`); }
+  });
+}, 1000);
+
+function toolArg(b) {
+  const i = b.input || {};
+  if (typeof i !== 'object') return String(i);
+  return i.command || i.file_path || i.pattern || i.url || i.query || i.skill || i.description || i.prompt || JSON.stringify(i);
+}
+function blockHTML(b, live) {
+  if (b.type === 'text') return `<div class="md">${md(b.text)}</div>`;
+  if (b.type === 'thinking') {
+    // While Claude is still thinking, show the summary live and expanded (like claude.ai); collapse it afterwards.
+    if (live) return `<details class="thinking" open data-live="1"><summary>正在思考…</summary><div class="body">${esc(b.text || '…')}</div></details>`;
+    return b.text ? `<details class="thinking"><summary>思考过程</summary><div class="body">${esc(b.text)}</div></details>` : '';
+  }
+  if (b.type === 'error') return `<div class="err-block">${esc(b.text)}</div>`;
+  if (b.type === 'tool' && /generate_image$/.test(b.name || '')) return imageToolHTML(b);
+  if (b.type === 'tool') {
+    const st = b.result === undefined ? '<span class="st">运行中…</span>' : b.isError ? '<span class="st err">失败</span>' : '<span class="st ok">完成</span>';
+    const input = typeof b.input === 'object' ? JSON.stringify(b.input, null, 2) : (b.input ?? '');
+    return `<details class="tool" data-id="${esc(b.id)}"><summary><span class="name">${esc(b.name)}</span><span class="arg">${esc(toolArg(b))}</span>${st}</summary><pre>${esc(input)}</pre>${b.result !== undefined ? `<pre>${esc(b.result)}</pre>` : ''}</details>`;
+  }
+  return '';
+}
+// ---------- live preview of web pages: served from the preview origin (preview.<domain>), shown in a side panel ----------
+// The page runs on its own origin, so its scripts can't read this site's access key or call its API.
+const PV_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 8h18"/><path d="M8 21h8"/></svg>';
+const SHARE_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>';
+const PV_SIZES =[['desktop', '桌面', '100%'], ['tablet', '平板', '820px'], ['phone', '手机', '390px']];
+let pvTimer = 0, pvStamp = null;
+function openPreview(url, name) {
+  closePreview(); closeMenus(); $('#sites-modal')?.remove();
+  const token = (url.match(/\/p\/([\w-]+)\//) || [])[1];
+  const size = pref('pv_size', 'desktop');
+  const el = document.createElement('div'); el.className = 'pv-panel'; el.id = 'pv-panel';
+  el.innerHTML = `<div class="pv-bar"><span class="pv-title" title="${esc(url)}">${PV_ICON}<b>${esc(name || '网页预览')}</b></span>
+      <span class="pv-sizes">${PV_SIZES.map(([k, l]) => `<button data-sz="${k}" class="${k === size ? 'on' : ''}">${l}</button>`).join('')}</span>
+      <button class="pv-btn" id="pv-reload" title="刷新">刷新</button>
+      <a class="pv-btn" href="${esc(url)}" target="_blank" rel="noopener" title="在新标签页打开">新标签页</a>
+      <button class="pv-btn" id="pv-copy" title="复制预览链接（拿到链接的人都能打开这个页面）">复制链接</button>
+      <button class="pv-btn pv-x" id="pv-close" title="关闭">×</button></div>
+    <div class="pv-stage"><iframe id="pv-frame" src="${esc(url)}" style="width:${PV_SIZES.find((s) => s[0] === size)[2]}"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads"
+      allow="clipboard-write; fullscreen" referrerpolicy="no-referrer"></iframe></div>
+    <div class="pv-foot">文件变化后会自动刷新 · 页面在独立域名 ${esc(new URL(url).host)} 上运行，读不到本站的访问密钥</div>`;
+  document.body.appendChild(el);
+  document.body.classList.add('pv-open');
+  const frame = $('#pv-frame');
+  const reload = () => { frame.src = url.split('#')[0].replace(/[?&]_r=\d+/, '') + (url.includes('?') ? '&' : '?') + '_r=' + Date.now(); };
+  el.querySelectorAll('[data-sz]').forEach((b) => (b.onclick = () => {
+    setPref('pv_size', b.dataset.sz); frame.style.width = PV_SIZES.find((s) => s[0] === b.dataset.sz)[2];
+    el.querySelectorAll('[data-sz]').forEach((x) => x.classList.toggle('on', x === b));
+  }));
+  $('#pv-reload').onclick = reload;
+  $('#pv-close').onclick = closePreview;
+  $('#pv-copy').onclick = (e) => { navigator.clipboard.writeText(url); e.target.textContent = '已复制'; setTimeout(() => (e.target.textContent = '复制链接'), 1500); };
+  // Auto-refresh: poll the folder's newest modification time while the panel is open.
+  pvStamp = null;
+  if (token) pvTimer = setInterval(async () => {
+    if (document.hidden) return;
+    try {
+      const { stamp } = await api(`/api/previews/${token}/stamp`);
+      if (pvStamp !== null && stamp && stamp !== pvStamp) reload();
+      pvStamp = stamp;
+    } catch {}
+  }, 2000);
+}
+function closePreview() { clearInterval(pvTimer); $('#pv-panel')?.remove(); document.body.classList.remove('pv-open'); }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#pv-panel') && !$('.modal-bg')) closePreview(); });
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-pv]'); if (b) { e.preventDefault(); openPreview(b.dataset.pv, b.dataset.pvname); } });
+async function openSites() {
+  closeMenus();
+  if (innerWidth <= 820) { state.sidebar = false; applySidebar(); }
+  const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.id = 'sites-modal';
+  bg.innerHTML = `<div class="modal files-modal"><h3>网页预览</h3><div class="note">加载中…</div></div>`;
+  bg.onclick = (e) => { if (e.target === bg) bg.remove(); };
+  document.body.appendChild(bg);
+  const box = bg.querySelector('.modal');
+  try {
+    const { sites } = await api('/api/previews');
+    box.innerHTML = `<h3>网页预览</h3><div class="note" style="margin:0 0 10px">工作目录里含网页文件的文件夹。点页面名在右侧实时预览，文件改动后自动刷新。</div>`
+      + (sites.length ? sites.map((s) => `<div class="fcard"><div class="frow"><span class="fext">WEB</span>
+          <span class="fname">${esc(s.name)}<small>${new Date(s.mtime).toLocaleString('zh-CN')} · ${s.pages.length} 个页面</small></span></div>
+          <div class="pv-pages">${s.pages.map((p) => `<button class="fbtn fpv" data-pv="${esc(s.url + encodeURIComponent(p))}" data-pvname="${esc(s.name + '/' + p)}">${PV_ICON}${esc(p)}</button>`).join('')}</div></div>`).join('')
+        : '<div class="note">工作目录里还没有网页项目。</div>');
+  } catch (e) { box.innerHTML = `<h3>网页预览</h3><div class="note">加载失败：${esc(e.message || e)}</div>`; }
+}
+
+// ---------- files: what Claude produced (cards under the reply) and what the user uploaded; all downloadable ----------
+const fmtSize = (n) => (n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(0) + ' KB' : (n / 1048576).toFixed(1) + ' MB');
+const kq = () => 'k=' + encodeURIComponent(KEY);
+// On a share page files are numbered in the snapshot: /api/s/<token>/f/<n>.
+const shareFile = (ref, dl) => `/api/s/${SHARE}/f/${ref}${dl ? '?dl=1' : ''}`;
+const outUrl = (convId, ti, n, dl) => SHARE ? shareFile(state.current.messages[ti].files[n].ref, dl) : `/api/conversations/${convId}/out/${ti}/${n}?${kq()}${dl ? '&dl=1' : ''}`;
+const upUrl = (id, dl) => SHARE ? shareFile(String(id).slice(1), dl) : `/api/files/${id}?${kq()}${dl ? '&dl=1' : ''}`;
+const DL_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>';
+function fileKind(name) {
+  const e = (name.split('.').pop() || '').toLowerCase();
+  return /^(png|jpe?g|gif|webp|bmp)$/.test(e) ? 'image' : /^(mp4|m4v|webm|mov)$/.test(e) ? 'video' : /^(mp3|wav|m4a|ogg|flac)$/.test(e) ? 'audio'
+    : e === 'pdf' ? 'pdf' : /^(txt|md|csv|tsv)$/.test(e) ? 'text' : 'other';
+}
+const extLabel = (name) => ((name.match(/\.([^.]+)$/) || [])[1] || 'file').slice(0, 4).toUpperCase();
+function fileRowHTML(f, open, dl, sub) {
+  const k = fileKind(f.name);
+  const preview = k === 'image' ? `<a class="fprev" href="${open}" target="_blank"><img src="${open}" loading="lazy" alt=""></a>`
+    : k === 'video' ? `<video class="fprev" controls preload="metadata" src="${open}"></video>`
+    : k === 'audio' ? `<audio class="fprev" controls preload="none" src="${open}"></audio>` : '';
+  const canOpen = k !== 'other';
+  return `<div class="fcard">${preview}<div class="frow"><span class="fext">${esc(extLabel(f.name))}</span>
+    <span class="fname" title="${esc(f.name)}">${esc(f.name)}<small>${[f.size != null ? fmtSize(f.size) : '', sub || ''].filter(Boolean).join(' · ')}</small></span>
+    ${f.preview ? `<button class="fbtn fpv" data-pv="${esc(pvLink(f.preview))}" data-pvname="${esc(f.name)}">${PV_ICON}预览</button>` : ''}
+    ${canOpen ? `<a class="fbtn" href="${open}" target="_blank" rel="noopener">打开</a>` : ''}<a class="fbtn fdl" href="${dl}" download="${esc(f.name)}">${DL_ICON}下载</a></div></div>`;
+}
+// Web pages that share one preview folder (a multi-page site) are shown as ONE card with a single entry
+// (index.html, else the first page); the individual pages are folded into a list. Everything else: one card per file.
+function filesHTML(rest, ti) {
+  const sites = new Map(), out = [];
+  for (const [f, n] of rest) {
+    const tok = f.preview && (f.preview.match(/\/p\/([\w-]+)\//) || [])[1];
+    if (tok) { if (!sites.has(tok)) { sites.set(tok, []); out.push(['site', tok]); } sites.get(tok).push([f, n]); }
+    else out.push(['file', [f, n]]);
+  }
+  return out.map(([kind, v]) => {
+    if (kind === 'file' || sites.get(v).length < 2) {
+      const [f, n] = kind === 'file' ? v : sites.get(v)[0];
+      return fileRowHTML(f, outUrl(state.current.id, ti, n), outUrl(state.current.id, ti, n, true));
+    }
+    return siteCardHTML(sites.get(v), ti);
+  }).join('');
+}
+function siteCardHTML(pages, ti) {
+  const entry = pages.find(([f]) => /^index\.html?$/i.test(f.name)) || pages[0];
+  const base = pvLink(entry[0].preview).replace(/[^/]*$/, '');
+  const dir = (entry[0].path || '').split(/[\\/]/).slice(-2, -1)[0] || '网站';
+  const url = base + encodeURIComponent(entry[0].name);
+  return `<div class="fcard site-card"><div class="frow"><span class="fext">WEB</span>
+    <span class="fname" title="${esc(dir)}">${esc(dir)}<small>网站 · ${pages.length} 个页面 · 入口 ${esc(entry[0].name)}</small></span>
+    <button class="fbtn fpv site-open" data-pv="${esc(url)}" data-pvname="${esc(dir)}">${PV_ICON}打开网站</button>
+    <a class="fbtn" href="${esc(url)}" target="_blank" rel="noopener">新标签页</a>
+    <a class="fbtn fdl" href="/api/conversations/${state.current.id}/zip?which=out&${kq()}" title="下载这个对话里生成的全部文件">${DL_ICON}下载</a></div>
+    <details class="site-pages"><summary>全部页面</summary><div class="pv-pages">${pages.map(([f]) => `<button class="fbtn fpv" data-pv="${esc(base + encodeURIComponent(f.name))}" data-pvname="${esc(dir + '/' + f.name)}">${esc(f.name)}</button>`).join('')}</div></details></div>`;
+}
+function convFiles(c) {
+  const out = [], up = [];
+  (c?.messages || []).forEach((m, i) => {
+    if (m.role === 'assistant') (m.files || []).forEach((f, n) => out.push({ f, open: outUrl(c.id, i, n), dl: outUrl(c.id, i, n, true), turn: i }));
+    else (m.attachments || []).forEach((a) => a.id && up.push({ f: a, open: upUrl(a.id), dl: upUrl(a.id, true), turn: i }));
+  });
+  // Files the sharer attached to the share as a whole.
+  (c?.extras || []).forEach((f) => out.push({ f, open: shareFile(f.ref), dl: shareFile(f.ref, true), turn: -1 }));
+  return { out, up };
+}
+const turnNo = (c, i) => c.messages.slice(0, i + 1).filter((m) => m.role === 'user').length;
+function renderFilesBtn() {
+  const b = $('#files-btn'); if (!b) return;
+  const { out, up } = convFiles(state.current);
+  const n = out.length + up.length;
+  b.style.display = n ? '' : 'none';
+  b.querySelector('span').textContent = `文件 ${n}`;
+}
+function openFiles() {
+  closeMenus();
+  const c = state.current; if (!c) return;
+  const { out, up } = convFiles(c);
+  const list = (arr, who) => arr.length ? arr.map((x) => fileRowHTML(x.f, x.open, x.dl, x.turn < 0 ? '附带文件' : `第 ${turnNo(c, x.turn)} 轮${who}`)).join('') : '<div class="note">没有</div>';
+  // "Download all": the server zips the files (which = out | up | all). A share page has one zip of everything.
+  const zipUrl = (which) => SHARE ? `/api/s/${SHARE}/zip` : `/api/conversations/${c.id}/zip?which=${which}&${kq()}`;
+  const zipBtn = (which, n, label) => n ? `<a class="fbtn fdl fzip" href="${zipUrl(which)}" download>${DL_ICON}${label}</a>` : '';
+  const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.id = 'files-modal';
+  bg.innerHTML = `<div class="modal files-modal"><div class="fm-top"><h3>这个对话里的文件</h3>${(SHARE ? out.length + up.length > 1 : out.length && up.length) ? zipBtn('all', 1, `全部下载（${out.length + up.length} 个）`) : ''}</div>
+    <div class="fm-sec"><h4>Claude 生成的（${out.length}）</h4>${SHARE ? '' : zipBtn('out', out.length > 1, '全部下载 .zip')}</div>${list(out, '')}
+    <div class="fm-sec"><h4>${SHARE ? '对话中上传的' : '你上传的'}（${up.length}）</h4>${SHARE ? '' : zipBtn('up', up.length > 1, '全部下载 .zip')}</div>${list(up, '')}
+    <div class="note">${SHARE ? '这些文件来自分享时的快照。' : '文件保存在运行网站的电脑上，换设备访问也能在这里下载。'}</div></div>`;
+  bg.onclick = (e) => { if (e.target === bg) bg.remove(); };
+  document.body.appendChild(bg);
+}
+
+function turnHTML(t) {
+  const blocks = (t.blocks || []).filter(Boolean);
+  const body = blocks.map((b, i) => blockHTML(b, !t.done && i === blocks.length - 1)).join('');
+  const working = !t.done ? `<div><span class="spark">${SPARK}</span></div>` : '';
+  const ti = state.current?.messages.indexOf(t) ?? -1;
+  // Pictures already shown inside a generate_image card are not repeated in the file list below the reply.
+  const shown = new Set();
+  for (const b of blocks) if (b.type === 'tool' && /generate_image$/.test(b.name || '')) {
+    (b.images || []).forEach((x) => shown.add(x.name));
+    try { (JSON.parse(String(b.result).trim().split('\n')[0]).files || []).forEach((f) => shown.add(f.split(/[\\/]/).pop())); } catch {}
+  }
+  const rest = (t.files || []).map((f, n) => [f, n]).filter(([f]) => !shown.has(f.name));
+  const files = rest.length && ti >= 0 ? `<div class="outs">${filesHTML(rest, ti)}</div>` : '';
+  const meta = t.done && t.result ? `<div class="meta"><button class="cp">复制</button><button class="bf" title="从这条回复开一个分支：新对话带着到这里为止的全部上下文">${BRANCH_ICON} 分支</button>${t.result.durationMs ? `<span>${(t.result.durationMs / 1000).toFixed(1)}s</span>` : ''}${t.result.cost ? `<span>$${t.result.cost.toFixed(4)}</span>` : ''}</div>` : '';
+  return body + working + files + meta;
+}
+function msgHTML(m, i) {
+  if (m.role === 'user') {
+    const fileUrl = (a) => upUrl(a.id);
+    const atts = (m.attachments || []).map((a) => (a.preview ? `<img src="${a.preview}">`
+      : a.id && a.type?.startsWith('image/') ? `<a href="${fileUrl(a)}" target="_blank"><img src="${fileUrl(a)}"></a>`
+      : a.id ? `<a class="chip" href="${upUrl(a.id, true)}" download="${esc(a.name)}" title="下载 ${esc(a.name)}">${DL_ICON} ${esc(a.name)}</a>` : `<span class="chip">${esc(a.name)}</span>`)).join('');
+    const quotes = (m.quotes || []).map((q, k) => `<div class="uq" data-k="${k}" title="点击跳转到原文">${esc(q)}</div>`).join('');
+    return `<div class="msg-user" data-i="${i}"><div style="display:flex;flex-direction:column;align-items:flex-end;min-width:0">${quotes ? `<div class="quotes">${quotes}</div>` : ''}${atts ? `<div class="atts">${atts}</div>` : ''}${m.text ? `<div class="bubble">${esc(m.text)}</div>` : ''}${m.text || m.quotes?.length ? '<div class="meta umeta"><button class="ucp" title="复制这条消息">复制</button></div>' : ''}</div></div>`;
+  }
+  const c = state.current;
+  const note = c?.branchOf && c.branchOf.index === i
+    ? `<div class="branch-note"><span>以上内容来自 <a data-open="${esc(c.branchOf.convId)}">${esc(c.branchOf.title || '原对话')}</a>，以下是这个分支的新对话</span></div>` : '';
+  return `<div class="msg-ai" data-i="${i}">${turnHTML(m)}</div>${note}`;
+}
+const nearBottom = () => { const s = $('#scroll'); return !s || s.scrollHeight - s.scrollTop - s.clientHeight < 120; };
+const toBottom = () => { const s = $('#scroll'); if (s) s.scrollTop = s.scrollHeight; };
+function wireThread(root) {
+  root.querySelectorAll('.msg-user .ucp').forEach((b) => (b.onclick = () => {
+    const m = state.current?.messages[+b.closest('.msg-user').dataset.i]; if (!m) return;
+    navigator.clipboard.writeText(m.text || (m.quotes || []).join('\n\n'));
+    b.textContent = '已复制'; setTimeout(() => (b.textContent = '复制'), 1500);
+  }));
+  root.querySelectorAll('.msg-user .uq').forEach((q) => (q.onclick = () => {
+    if (getSelection().toString()) return;
+    const i = +q.closest('.msg-user').dataset.i, m = state.current?.messages[i];
+    if (m) jumpToQuote(m.quotes[+q.dataset.k], m.quoteSrc?.[+q.dataset.k], i);
+  }));
+  root.querySelectorAll('pre .copy').forEach((b) => (b.onclick = () => { navigator.clipboard.writeText(b.parentElement.querySelector('code')?.innerText || ''); b.textContent = '已复制'; }));
+  root.querySelectorAll('[data-open]').forEach((a) => (a.onclick = () => openConv(a.dataset.open)));
+  renderMermaid(root);
+  root.querySelectorAll('.msg-ai .bf').forEach((b) => (b.onclick = () => branchFrom(+b.closest('.msg-ai').dataset.i, b)));
+  root.querySelectorAll('.msg-ai .cp').forEach((b) => (b.onclick = () => {
+    const t = state.current.messages[+b.closest('.msg-ai').dataset.i];
+    navigator.clipboard.writeText((t.blocks || []).filter((x) => x.type === 'text').map((x) => x.text).join('\n\n')); b.textContent = '已复制';
+  }));
+}
+function renderThread(scroll) {
+  const th = $('#thread'); if (!th || !state.current) return;
+  const stick = scroll || nearBottom();
+  const c = state.current;
+  const from = SHARE ? `<div class="share-head">只读分享 · ${c.messages.filter((m) => m.role === 'user').length} 轮对话 · 快照时间 ${new Date(c.share.sharedAt).toLocaleString('zh-CN', { dateStyle: 'medium', timeStyle: 'short' })}</div>`
+    : c.branchOf ? `<div class="branch-from">${BRANCH_ICON} 分支自 <a data-open="${esc(c.branchOf.convId)}">${esc(c.branchOf.title || '原对话')}</a></div>` : '';
+  th.innerHTML = from + c.messages.map(msgHTML).join('');
+  wireThread(th);
+  if (stick) toBottom();
+  renderToc(); renderFilesBtn();
+  $('.topbar .title').textContent = state.current.title || '';
+}
+function renderLastTurn() {
+  const th = $('#thread'); const last = th?.querySelector('.msg-ai:last-of-type'); if (!last) return renderThread();
+  const stick = nearBottom();
+  const open = new Set([...last.querySelectorAll('details[open]:not([data-live])')].map((d) => d.dataset.id || d.className));
+  last.innerHTML = turnHTML(state.current.messages.at(-1));
+  last.querySelectorAll('details').forEach((d) => { if (open.has(d.dataset.id || d.className)) d.open = true; });
+  wireThread(last);
+  if (stick) toBottom();
+  if (state.current.messages.at(-1)?.done) { renderToc(); renderFilesBtn(); }
+}
+function renderPerms() {
+  const el = $('#perms'); if (!el) return;
+  const list = [...state.perms.values()].filter((p) => p.convId === state.current?.id);
+  el.innerHTML = list.map((p) => `
+    <div class="perm" data-r="${p.reqId}">
+      <div class="h">Claude 请求使用 <code>${esc(p.toolName)}</code></div>
+      <pre>${esc(typeof p.input === 'object' ? JSON.stringify(p.input, null, 2) : p.input)}</pre>
+      <div class="btns"><button class="btn primary" data-a="allow">允许</button>${p.hasSuggestions ? '<button class="btn" data-a="always">本会话始终允许</button>' : ''}<button class="btn" data-a="deny">拒绝</button></div>
+    </div>`).join('');
+  el.querySelectorAll('.perm').forEach((card) => card.querySelectorAll('button').forEach((b) => (b.onclick = () => {
+    const a = b.dataset.a; send({ type: 'perm', reqId: card.dataset.r, allow: a !== 'deny', always: a === 'always' });
+    state.perms.delete(card.dataset.r); renderPerms();
+  })));
+  if (list.length) toBottom();
+}
+
+// ---------- boot ----------
+render();
+if (KEY && !SHARE) { loadMeta().then(renderComposerState).catch(() => {}); connect(); loadUsage(); setInterval(loadUsage, 5 * 60_000); }
+</script>
+</body>
+</html>

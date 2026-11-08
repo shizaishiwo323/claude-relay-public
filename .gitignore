@@ -1,0 +1,9 @@
+# Everything the relay writes at run time: keys, tunnel token, conversations, shares, guests, devices, logs.
+# Never commit it - the keys in data/config.json are passwords.
+data/
+node_modules/
+bin/
+connector/dist/
+*.log
+.DS_Store
+Thumbs.db

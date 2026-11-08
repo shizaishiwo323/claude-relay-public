@@ -1,0 +1,24 @@
+{
+  "name": "claude-relay",
+  "version": "1.0.0",
+  "description": "A self-hosted claude.ai-style web UI for your own Claude subscription, through the Claude Agent SDK and a Cloudflare Tunnel.",
+  "main": "server.mjs",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "build-connector": "node connector/build.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": ["claude", "claude-code", "agent-sdk", "cloudflare-tunnel", "self-hosted"],
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.314",
+    "mammoth": "^1.13.0",
+    "turndown": "^7.2.5",
+    "turndown-plugin-gfm": "^1.0.2",
+    "ws": "^8.22.0",
+    "zod": "^4.6.7"
+  }
+}

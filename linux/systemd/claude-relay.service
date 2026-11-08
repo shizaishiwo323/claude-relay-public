@@ -1,0 +1,16 @@
+[Unit]
+Description=Claude Relay web server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=@USER@
+WorkingDirectory=@REPO@
+Environment=HOME=@HOME@
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=@NODE@ server.mjs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Cloudflare Tunnel for Claude Relay
+After=network-online.target claude-relay.service
+Wants=network-online.target
+
+[Service]
+User=@USER@
+WorkingDirectory=@REPO@
+# data/tunnel.env holds TUNNEL_TOKEN=eyJ... (written by linux/setup.sh)
+EnvironmentFile=@REPO@/data/tunnel.env
+ExecStart=@CLOUDFLARED@ tunnel --no-autoupdate run
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
